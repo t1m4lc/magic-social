@@ -1,5 +1,6 @@
 <script setup>
 import { AnimatedTooltip } from '~/components/ui/animated-tooltip'
+import LazyAnimatedTooltip from '~/components/ui/animated-tooltip/LazyAnimatedTooltip.vue'
 import { ShimmerButton } from '~/components/ui/shimmer-button'
 import RainbowButton from '~/components/ui/rainbow-button/RainbowButton.vue'
 import AuroraBackground from '~/components/ui/aurora-background/AuroraBackground.vue'
@@ -246,7 +247,7 @@ const tweetTestimonials = [
             <!-- Social Proof -->
             <div class="flex justify-center items-center flex-col gap-2 text-sm text-foreground/60">
               <div class="flex items-center gap-2">
-                <AnimatedTooltip :items="socialProof" />
+                <LazyAnimatedTooltip :items="socialProof" />
               </div>
               <span>Used by smart people</span>
             </div>
