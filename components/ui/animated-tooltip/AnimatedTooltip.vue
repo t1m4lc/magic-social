@@ -1,3 +1,49 @@
+<script setup lang="ts">
+import { computed, ref } from "vue";
+import { Motion } from "motion-v";
+
+interface Item {
+  id: number;
+  name: string;
+  designation: string;
+  image: string;
+}
+
+const props = defineProps<{
+  items: Item[];
+  avatarSize?: string; // e.g., "size-14", "size-16"
+}>();
+
+const hoveredIndex = ref<number | null>(null);
+const mouseX = ref<number>(0);
+
+const rotation = computed<number>(() => {
+  const x = mouseX.value;
+  return (x / 100) * 50;
+});
+
+const translation = computed<number>(() => {
+  const x = mouseX.value;
+  return (x / 100) * 50;
+});
+
+function handleMouseEnter(event: MouseEvent, itemId: number) {
+  hoveredIndex.value = itemId;
+  const rect = (event.target as HTMLElement)?.getBoundingClientRect();
+  const halfWidth = rect.width / 2;
+  mouseX.value = event.clientX - rect.left - halfWidth;
+}
+
+function handleMouseMove(event: MouseEvent) {
+  const rect = (event.target as HTMLElement)?.getBoundingClientRect();
+  const halfWidth = rect.width / 2;
+  mouseX.value = event.clientX - rect.left - halfWidth;
+}
+
+// Default to "size-14" if not provided
+const avatarSizeClass = computed(() => props.avatarSize || "size-14");
+</script>
+
 <template>
   <div
     v-for="item in items"
@@ -52,53 +98,7 @@
     <img
       :src="item.image"
       :alt="item.name"
-      class="relative !m-0 size-14 rounded-full border-2 border-white object-cover object-top !p-0 transition duration-500 group-hover:z-30 group-hover:scale-105"
+      :class="`relative !m-0 rounded-full border-2 border-white object-cover object-top !p-0 transition duration-500 group-hover:z-30 group-hover:scale-105 ${avatarSizeClass}`"
     />
   </div>
 </template>
-
-<script setup lang="ts">
-import { computed, ref } from "vue";
-import { Motion } from "motion-v";
-
-interface Item {
-  id: number;
-  name: string;
-  designation: string;
-  image: string;
-}
-
-defineProps<{
-  items: Item[];
-}>();
-
-const hoveredIndex = ref<number | null>(null);
-const mouseX = ref<number>(0);
-
-// Calculate rotation and translation based on mouse position
-const rotation = computed<number>(() => {
-  const x = mouseX.value;
-  return (x / 100) * 50;
-});
-
-const translation = computed<number>(() => {
-  const x = mouseX.value;
-  return (x / 100) * 50;
-});
-
-// Handle initial mouse position and hover
-function handleMouseEnter(event: MouseEvent, itemId: number) {
-  hoveredIndex.value = itemId;
-  // Calculate initial position immediately
-  const rect = (event.target as HTMLElement)?.getBoundingClientRect();
-  const halfWidth = rect.width / 2;
-  mouseX.value = event.clientX - rect.left - halfWidth;
-}
-
-// Handle mouse movement
-function handleMouseMove(event: MouseEvent) {
-  const rect = (event.target as HTMLElement)?.getBoundingClientRect();
-  const halfWidth = rect.width / 2;
-  mouseX.value = event.clientX - rect.left - halfWidth;
-}
-</script>
