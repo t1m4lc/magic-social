@@ -299,7 +299,7 @@ const faqs = [
               <div class="flex items-center gap-2">
                 <AnimatedTooltip :items="socialProof" />
               </div>
-              <span>Used by hundreds of people</span>
+              <span>Used by smart people</span>
             </div>
           </div>
         </div>
@@ -390,7 +390,7 @@ const faqs = [
                       <div class="flex items-center space-x-1">
                         <p class="font-bold text-gray-900 dark:text-gray-100 text-sm">{{ tweet.name }}</p>
                         <!-- Verified badge -->
-                        <svg class="w-4 h-4 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
+                        <svg class="w-4 h-4 text-blue" fill="currentColor" viewBox="0 0 20 20">
                           <path fill-rule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
                         </svg>
                       </div>
@@ -398,7 +398,7 @@ const faqs = [
                     </div>
                   </div>
                   <!-- Twitter logo -->
-                  <svg class="w-5 h-5 text-blue-500" fill="currentColor" viewBox="0 0 24 24">
+                  <svg class="w-5 h-5 text-black" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
                   </svg>
                 </div>
@@ -409,7 +409,7 @@ const faqs = [
                 <!-- Tweet Actions -->
                 <div class="flex items-center justify-between text-gray-500 dark:text-gray-400 text-xs">
                   <div class="flex items-center space-x-6">
-                    <button class="flex items-center space-x-1 hover:text-blue-500 transition-colors">
+                    <button class="flex items-center space-x-1 hover:text-blue transition-colors">
                       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
                       </svg>
@@ -427,7 +427,7 @@ const faqs = [
                       </svg>
                       <span>{{ tweet.likes }}</span>
                     </button>
-                    <button class="flex items-center space-x-1 hover:text-blue-500 transition-colors">
+                    <button class="flex items-center space-x-1 hover:text-blue transition-colors">
                       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z"></path>
                       </svg>
@@ -450,7 +450,7 @@ const faqs = [
                       <div class="flex items-center space-x-1">
                         <p class="font-bold text-gray-900 dark:text-gray-100 text-sm">{{ tweet.name }}</p>
                         <!-- Verified badge -->
-                        <svg class="w-4 h-4 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
+                        <svg class="w-4 h-4 text-blue" fill="currentColor" viewBox="0 0 20 20">
                           <path fill-rule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
                         </svg>
                       </div>
@@ -458,7 +458,7 @@ const faqs = [
                     </div>
                   </div>
                   <!-- Twitter logo -->
-                  <svg class="w-5 h-5 text-blue-500" fill="currentColor" viewBox="0 0 24 24">
+                  <svg class="w-5 h-5 text-black" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
                   </svg>
                 </div>
@@ -469,7 +469,7 @@ const faqs = [
                 <!-- Tweet Actions -->
                 <div class="flex items-center justify-between text-gray-500 dark:text-gray-400 text-xs">
                   <div class="flex items-center space-x-6">
-                    <button class="flex items-center space-x-1 hover:text-blue-500 transition-colors">
+                    <button class="flex items-center space-x-1 hover:text-blue transition-colors">
                       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
                       </svg>
@@ -487,7 +487,7 @@ const faqs = [
                       </svg>
                       <span>{{ tweet.likes }}</span>
                     </button>
-                    <button class="flex items-center space-x-1 hover:text-blue-500 transition-colors">
+                    <button class="flex items-center space-x-1 hover:text-blue transition-colors">
                       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z"></path>
                       </svg>
@@ -510,7 +510,7 @@ const faqs = [
                       <div class="flex items-center space-x-1">
                         <p class="font-bold text-gray-900 dark:text-gray-100 text-sm">{{ tweet.name }}</p>
                         <!-- Verified badge -->
-                        <svg class="w-4 h-4 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
+                        <svg class="w-4 h-4 text-blue" fill="currentColor" viewBox="0 0 20 20">
                           <path fill-rule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
                         </svg>
                       </div>
@@ -518,7 +518,7 @@ const faqs = [
                     </div>
                   </div>
                   <!-- Twitter logo -->
-                  <svg class="w-5 h-5 text-blue-500" fill="currentColor" viewBox="0 0 24 24">
+                  <svg class="w-5 h-5 text-black" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
                   </svg>
                 </div>
@@ -529,7 +529,7 @@ const faqs = [
                 <!-- Tweet Actions -->
                 <div class="flex items-center justify-between text-gray-500 dark:text-gray-400 text-xs">
                   <div class="flex items-center space-x-6">
-                    <button class="flex items-center space-x-1 hover:text-blue-500 transition-colors">
+                    <button class="flex items-center space-x-1 hover:text-blue transition-colors">
                       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
                       </svg>
@@ -547,7 +547,7 @@ const faqs = [
                       </svg>
                       <span>{{ tweet.likes }}</span>
                     </button>
-                    <button class="flex items-center space-x-1 hover:text-blue-500 transition-colors">
+                    <button class="flex items-center space-x-1 hover:text-blue transition-colors">
                       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z"></path>
                       </svg>

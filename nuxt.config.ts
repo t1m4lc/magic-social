@@ -19,4 +19,10 @@ export default defineNuxtConfig({
     prefix: "",
     componentDir: "./components/ui",
   },
+  routeRules: {
+    "/": { prerender: true },
+    "/pricing": { prerender: true },
+    "/terms": { prerender: true },
+    "/privacy": { prerender: true },
+  },
 });
