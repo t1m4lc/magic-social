@@ -1,0 +1,1 @@
+import{a3 as n,a4 as s,a5 as r,j as o,a6 as i}from"./CwulvzFn.js";function u(a){var t;const e=a||s();return((t=e==null?void 0:e.ssrContext)==null?void 0:t.head)||(e==null?void 0:e.runWithContext(()=>{if(r())return o(i)}))}function d(a,e={}){const t=u(e.nuxt);if(t)return n(a,{head:t,...e})}export{d as u};

@@ -1,16 +1,22 @@
 <script setup>
 import { AnimatedTooltip } from '~/components/ui/animated-tooltip'
 import { ShimmerButton } from '~/components/ui/shimmer-button'
-import { Marquee } from '~/components/ui/marquee'
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '~/components/ui/accordion'
 import RainbowButton from '~/components/ui/rainbow-button/RainbowButton.vue'
-import { Motion } from "motion-v";
 import AuroraBackground from '~/components/ui/aurora-background/AuroraBackground.vue'
-import BlackHoleBackground from '~/components/ui/bg-black-hole/BlackHoleBackground.vue'
+
+// Lazy load components for better performance
+const TestimonialsSection = defineAsyncComponent(() => import('~/components/TestimonialsSection.vue'))
+const FeaturesSection = defineAsyncComponent(() => import('~/components/FeaturesSection.vue'))
+const FAQSection = defineAsyncComponent(() => import('~/components/FAQSection.vue'))
+const CTASection = defineAsyncComponent(() => import('~/components/CTASection.vue'))
+const FounderSection = defineAsyncComponent(() => import('~/components/FounderSection.vue'))
 
 // SEO
 useHead({
   title: 'Magic Social - AI-powered Twitter Chrome Extension',
+  htmlAttrs: {
+    lang: 'en'
+  },
   meta: [
     { name: 'description', content: 'Turn 10 minutes of work into 10× Twitter engagement. AI-powered copilot for crafting, replying & growing your Twitter presence.' },
     { property: 'og:title', content: 'Magic Social - AI-powered Twitter Chrome Extension' },
@@ -197,63 +203,6 @@ const tweetTestimonials = [
     likes: 87
   }
 ]
-
-// Features data
-const features = [
-  {
-    title: 'Reply & Create Prompts',
-    description: 'Prebuilt scenarios and 100% custom prompts in one click.',
-    icon: '💬'
-  },
-  {
-    title: 'In‑Context Customization',
-    description: 'Add voice, style or extra details inline, no separate UI.',
-    icon: '✨'
-  },
-  {
-    title: 'Growth by engaging',
-    description: 'See real-time improvements in your likes, replies, and follower growth.',
-    icon: '📊'
-  },
-  {
-    title: 'Tone & Global Instructions',
-    description: 'Choose your tone (casual, witty, pro) and set global rules for consistency.',
-    icon: '🎯'
-  },
-  {
-    title: 'One‑Click Google Signup',
-    description: 'Access with your Google account, secure and instant.',
-    icon: '🔐'
-  },
-  {
-    title: '100% Client‑Side Processing',
-    description: 'All AI runs in your browser, your drafts never leave you.',
-    icon: '🛡️'
-  }
-]
-
-const faqs = [
-  {
-    question: "Which platform does Magic Social support?",
-    answer: "Only Twitter for now, focused, fast, friction‑free. We're building the best possible experience for Twitter before expanding to other platforms."
-  },
-  {
-    question: "Do I need technical skills to use Magic Social?",
-    answer: "Not at all! Magic Social is designed to be extremely user-friendly. Simply install the Chrome extension and start using it directly on Twitter. No setup required."
-  },
-  {
-    question: "Does Magic Social include scheduling or planning features?",
-    answer: "Not yet. We generate perfect drafts; you hit Tweet or Reply. Our focus is on helping you craft better content in real-time, not managing your posting schedule."
-  },
-  {
-    question: "Do I need an account to use Magic Social?",
-    answer: "Yes, signup is required, but it's just one click with Google. No extra forms or passwords needed. Your data stays secure and private."
-  },
-  {
-    question: "How does the AI generate replies and tweets?",
-    answer: "Magic Social uses advanced AI to analyze context and generate relevant, engaging content. All processing happens in your browser, so your drafts never leave your device."
-  }
-]
 </script>
 
 <template>
@@ -270,7 +219,7 @@ const faqs = [
           <a href="#features" class="text-foreground/60 hover:text-foreground transition-colors">Features</a>
           <a href="#testimonials" class="text-foreground/60 hover:text-foreground transition-colors">Reviews</a>
         </nav>
-        <ShimmerButton class="px-4 py-2 text-sm hover:scale-105 active:scale-95 transition-transform duration-200" shimmer-color="#ffffff" background="#000000">
+        <ShimmerButton class="px-4 py-2 text-sm hover:scale-105 active:scale-95 transition-transform duration-200" shimmer-color="#ffffff" background="#000000" aria-label="Install Magic Social Chrome Extension">
           Install Extension
         </ShimmerButton>
       </div>
@@ -284,12 +233,12 @@ const faqs = [
             <h1 class="text-5xl md:text-6xl font-bold tracking-tight mb-6 text-foreground">
               Turn 10 minutes into 10× Twitter engagement
             </h1>
-            <p class="text-xl md:text-2xl text-foreground/70 mb-12 max-w-3xl mx-auto leading-relaxed">
+            <p class="text-xl md:text-2xl text-foreground/80 mb-12 max-w-3xl mx-auto leading-relaxed">
               AI-powered Chrome extension that helps you craft better tweets, replies, and grow your presence smarter.
             </p>
 
             <div class="flex flex-col sm:flex-row gap-4 justify-center items-center mb-16">
-              <RainbowButton class="px-8 py-4 text-lg font-semibold hover:scale-105 active:scale-95 transition-transform duration-200" shimmer-color="#ffffff" background="#000000">
+              <RainbowButton class="px-8 py-4 text-lg font-semibold hover:scale-105 active:scale-95 transition-transform duration-200" shimmer-color="#ffffff" background="#000000" aria-label="Install Magic Social Chrome Extension">
                 ✨ Install Chrome Extension
               </RainbowButton>
             </div>
@@ -358,7 +307,7 @@ const faqs = [
           <div class="bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 rounded-xl p-8 border border-border/50 shadow-lg">
             <div class="w-full h-96 bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-900/30 dark:to-purple-900/30 rounded-lg flex items-center justify-center">
               <div class="text-center">
-                <span class="text-6xl mb-4 block saturate-150">🎬</span>
+                <span class="text-6xl mb-4 block saturate-150" role="img" aria-label="Video demonstration">🎬</span>
                 <p class="text-lg font-semibold text-foreground/80">Extension Demo</p>
                 <p class="text-sm text-foreground/60">GIF: Magic Social generating tweets in real-time</p>
               </div>
@@ -369,321 +318,95 @@ const faqs = [
     </section>
 
     <!-- Testimonials -->
-    <section id="testimonials" class="py-20 px-4 bg-muted/30">
-      <div class="container max-w-full mx-auto">
-        <div class="text-center mb-16">
-          <h2 class="text-3xl md:text-4xl font-bold mb-4">Loved by Makers</h2>
-          <p class="text-lg text-foreground/60">Here's what our users say about Magic Social</p>
-        </div>
-
-        <!-- Marquee testimonials -->
-        <div class="bg-muted/30 relative flex h-[600px] w-full flex-col items-center justify-center overflow-hidden rounded-lg">
-          <!-- First Marquee -->
-          <Marquee :pause-on-hover="true" class="[--duration:25s]">
-            <div v-for="tweet in tweetTestimonials.slice(0, 4)" :key="tweet.id" class="mx-4">
-              <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-6 shadow-md hover:shadow transition-shadow duration-300 max-w-sm">
-                <!-- Tweet Header -->
-                <div class="flex items-start justify-between mb-3">
-                  <div class="flex items-center">
-                    <img :src="tweet.avatar" :alt="tweet.name" class="w-12 h-12 rounded-full mr-3" />
-                    <div>
-                      <div class="flex items-center space-x-1">
-                        <p class="font-bold text-gray-900 dark:text-gray-100 text-sm">{{ tweet.name }}</p>
-                        <!-- Verified badge -->
-                        <svg class="w-4 h-4 text-blue" fill="currentColor" viewBox="0 0 20 20">
-                          <path fill-rule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
-                        </svg>
-                      </div>
-                      <p class="text-gray-500 dark:text-gray-400 text-sm">{{ tweet.handle }} · {{ tweet.timestamp }}</p>
-                    </div>
-                  </div>
-                  <!-- Twitter logo -->
-                  <svg class="w-5 h-5 text-black" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
-                  </svg>
-                </div>
-
-                <!-- Tweet Content -->
-                <p class="text-gray-900 dark:text-gray-100 leading-relaxed mb-4 text-sm">{{ tweet.content }}</p>
-
-                <!-- Tweet Actions -->
-                <div class="flex items-center justify-between text-gray-500 dark:text-gray-400 text-xs">
-                  <div class="flex items-center space-x-6">
-                    <button class="flex items-center space-x-1 hover:text-blue transition-colors">
-                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
-                      </svg>
-                      <span>{{ tweet.comments }}</span>
-                    </button>
-                    <button class="flex items-center space-x-1 hover:text-green-500 transition-colors">
-                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
-                      </svg>
-                      <span>{{ tweet.retweets }}</span>
-                    </button>
-                    <button class="flex items-center space-x-1 hover:text-red-500 transition-colors">
-                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
-                      </svg>
-                      <span>{{ tweet.likes }}</span>
-                    </button>
-                    <button class="flex items-center space-x-1 hover:text-blue transition-colors">
-                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z"></path>
-                      </svg>
-                    </button>
-                  </div>
-                </div>
+    <ClientOnly>
+      <Suspense>
+        <TestimonialsSection :testimonials="tweetTestimonials" />
+        <template #fallback>
+          <div class="py-20 px-4 bg-muted/30">
+            <div class="container max-w-full mx-auto">
+              <div class="text-center mb-16">
+                <h2 class="text-3xl md:text-4xl font-bold mb-4">Loved by Makers</h2>
+                <p class="text-lg text-foreground/60">Loading testimonials...</p>
+              </div>
+              <div class="bg-muted/30 relative flex h-[600px] w-full flex-col items-center justify-center overflow-hidden rounded-lg">
+                <div class="animate-pulse">Loading amazing testimonials...</div>
               </div>
             </div>
-          </Marquee>
-
-          <!-- Second Marquee (reverse) -->
-          <Marquee :reverse="true" :pause-on-hover="true" class="[--duration:25s]">
-            <div v-for="tweet in tweetTestimonials.slice(4, 8)" :key="tweet.id" class="mx-4">
-              <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-6 shadow-md hover:shadow transition-shadow duration-300 max-w-sm">
-                <!-- Tweet Header -->
-                <div class="flex items-start justify-between mb-3">
-                  <div class="flex items-center">
-                    <img :src="tweet.avatar" :alt="tweet.name" class="w-12 h-12 rounded-full mr-3" />
-                    <div>
-                      <div class="flex items-center space-x-1">
-                        <p class="font-bold text-gray-900 dark:text-gray-100 text-sm">{{ tweet.name }}</p>
-                        <!-- Verified badge -->
-                        <svg class="w-4 h-4 text-blue" fill="currentColor" viewBox="0 0 20 20">
-                          <path fill-rule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
-                        </svg>
-                      </div>
-                      <p class="text-gray-500 dark:text-gray-400 text-sm">{{ tweet.handle }} · {{ tweet.timestamp }}</p>
-                    </div>
-                  </div>
-                  <!-- Twitter logo -->
-                  <svg class="w-5 h-5 text-black" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
-                  </svg>
-                </div>
-
-                <!-- Tweet Content -->
-                <p class="text-gray-900 dark:text-gray-100 leading-relaxed mb-4 text-sm">{{ tweet.content }}</p>
-
-                <!-- Tweet Actions -->
-                <div class="flex items-center justify-between text-gray-500 dark:text-gray-400 text-xs">
-                  <div class="flex items-center space-x-6">
-                    <button class="flex items-center space-x-1 hover:text-blue transition-colors">
-                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
-                      </svg>
-                      <span>{{ tweet.comments }}</span>
-                    </button>
-                    <button class="flex items-center space-x-1 hover:text-green-500 transition-colors">
-                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
-                      </svg>
-                      <span>{{ tweet.retweets }}</span>
-                    </button>
-                    <button class="flex items-center space-x-1 hover:text-red-500 transition-colors">
-                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
-                      </svg>
-                      <span>{{ tweet.likes }}</span>
-                    </button>
-                    <button class="flex items-center space-x-1 hover:text-blue transition-colors">
-                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z"></path>
-                      </svg>
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </Marquee>
-
-          <!-- Third Marquee -->
-          <Marquee :pause-on-hover="true" class="[--duration:30s]">
-            <div v-for="tweet in tweetTestimonials.slice(8)" :key="tweet.id" class="mx-4">
-              <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-6 shadow-md hover:shadow transition-shadow duration-300 max-w-sm">
-                <!-- Tweet Header -->
-                <div class="flex items-start justify-between mb-3">
-                  <div class="flex items-center">
-                    <img :src="tweet.avatar" :alt="tweet.name" class="w-12 h-12 rounded-full mr-3" />
-                    <div>
-                      <div class="flex items-center space-x-1">
-                        <p class="font-bold text-gray-900 dark:text-gray-100 text-sm">{{ tweet.name }}</p>
-                        <!-- Verified badge -->
-                        <svg class="w-4 h-4 text-blue" fill="currentColor" viewBox="0 0 20 20">
-                          <path fill-rule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
-                        </svg>
-                      </div>
-                      <p class="text-gray-500 dark:text-gray-400 text-sm">{{ tweet.handle }} · {{ tweet.timestamp }}</p>
-                    </div>
-                  </div>
-                  <!-- Twitter logo -->
-                  <svg class="w-5 h-5 text-black" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
-                  </svg>
-                </div>
-
-                <!-- Tweet Content -->
-                <p class="text-gray-900 dark:text-gray-100 leading-relaxed mb-4 text-sm">{{ tweet.content }}</p>
-
-                <!-- Tweet Actions -->
-                <div class="flex items-center justify-between text-gray-500 dark:text-gray-400 text-xs">
-                  <div class="flex items-center space-x-6">
-                    <button class="flex items-center space-x-1 hover:text-blue transition-colors">
-                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
-                      </svg>
-                      <span>{{ tweet.comments }}</span>
-                    </button>
-                    <button class="flex items-center space-x-1 hover:text-green-500 transition-colors">
-                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
-                      </svg>
-                      <span>{{ tweet.retweets }}</span>
-                    </button>
-                    <button class="flex items-center space-x-1 hover:text-red-500 transition-colors">
-                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
-                      </svg>
-                      <span>{{ tweet.likes }}</span>
-                    </button>
-                    <button class="flex items-center space-x-1 hover:text-blue transition-colors">
-                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z"></path>
-                      </svg>
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </Marquee>
-
-          <!-- Left Gradient -->
-          <div class="pointer-events-none absolute inset-y-0 left-0 w-1/3 bg-gradient-to-r from-background dark:from-background"></div>
-
-          <!-- Right Gradient -->
-          <div class="pointer-events-none absolute inset-y-0 right-0 w-1/3 bg-gradient-to-l from-background dark:from-background"></div>
-        </div>
-      </div>
-    </section>
+          </div>
+        </template>
+      </Suspense>
+    </ClientOnly>
 
     <!-- Features -->
-    <section id="features" class="py-20 px-4 bg-muted/10">
-      <div class="container max-w-6xl mx-auto">
-        <div class="text-center mb-16">
-          <h2 class="text-3xl md:text-4xl font-bold mb-4">Features</h2>
-          <p class="text-lg text-foreground/60 max-w-2xl mx-auto">
-            Everything you need to supercharge your Twitter presence
-          </p>
-        </div>
-        <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-          <div v-for="feature in features" :key="feature.title" class="border border-border rounded-xl p-6 hover:shadow-lg hover:scale-105 transition-all duration-300">
-            <div class="text-3xl mb-4 saturate-150">{{ feature.icon }}</div>
-            <h3 class="text-lg font-semibold mb-3">{{ feature.title }}</h3>
-            <p class="text-foreground/60 leading-relaxed">{{ feature.description }}</p>
+    <ClientOnly>
+      <Suspense>
+        <FeaturesSection />
+        <template #fallback>
+          <div class="py-20 px-4 bg-muted/10">
+            <div class="container max-w-6xl mx-auto">
+              <div class="text-center mb-16">
+                <h2 class="text-3xl md:text-4xl font-bold mb-4">Features</h2>
+                <p class="text-lg text-foreground/60">Loading amazing features...</p>
+              </div>
+              <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <div v-for="i in 6" :key="i" class="border border-border rounded-xl p-6 animate-pulse">
+                  <div class="w-12 h-12 bg-gray-200 dark:bg-gray-700 rounded mb-4"></div>
+                  <div class="h-6 bg-gray-200 dark:bg-gray-700 rounded mb-3"></div>
+                  <div class="h-4 bg-gray-200 dark:bg-gray-700 rounded"></div>
+                </div>
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
-    </section>
+        </template>
+      </Suspense>
+    </ClientOnly>
 
     <!-- FAQ -->
-    <section id="faq" class="py-24 px-4 bg-muted/10">
-      <div class="container max-w-6xl mx-auto">
-        <div class="flex flex-col md:flex-row gap-12">
-          <!-- Left side - Title and contact info -->
-          <div class="flex flex-col text-left basis-1/2">
-            <h2 class="text-3xl font-bold sm:text-4xl mb-5">
-              Frequently
-              <span class="text-black dark:text-white font-bold">
-                Asked Questions
-              </span>
-            </h2>
-            <p class="text-muted-foreground mb-6">
-              Have another question? Contact me on
-              <a href="https://twitter.com/timothyalcaide" rel="noopener" target="_blank" class="text-black dark:text-white hover:text-gray-700 dark:hover:text-gray-300 hover:underline font-medium transition-colors">
-                Twitter
-              </a>
-              or by
-              <a href="mailto:timothyalcaide+magic@gmail.com" rel="noopener" target="_blank" class="text-black dark:text-white hover:text-gray-700 dark:hover:text-gray-300 hover:underline font-medium transition-colors">
-                email
-              </a>.
-            </p>
+    <ClientOnly>
+      <Suspense>
+        <FAQSection />
+        <template #fallback>
+          <div class="py-24 px-4 bg-muted/10">
+            <div class="container max-w-6xl mx-auto">
+              <div class="text-center">
+                <h2 class="text-3xl md:text-4xl font-bold mb-4">Frequently Asked Questions</h2>
+                <p class="text-lg text-foreground/60">Loading FAQ...</p>
+              </div>
+            </div>
           </div>
-
-          <!-- Right side - FAQ Accordion -->
-          <div class="basis-1/2">
-            <Accordion type="single" collapsible class="w-full">
-              <AccordionItem v-for="(faq, index) in faqs" :key="faq.question" :value="`item-${index}`" class="border-t border-border">
-                <AccordionTrigger class="text-left py-5 text-base font-medium md:text-lg hover:no-underline">
-                  {{ faq.question }}
-                </AccordionTrigger>
-                <AccordionContent class="pb-5 leading-relaxed text-muted-foreground">
-                  {{ faq.answer }}
-                </AccordionContent>
-              </AccordionItem>
-            </Accordion>
-          </div>
-        </div>
-      </div>
-    </section>
+        </template>
+      </Suspense>
+    </ClientOnly>
 
     <!-- CTA Section -->
-
-    <section class="relative h-96 w-full">
-      <BlackHoleBackground class="absolute inset-0 flex items-center justify-center rounded-xl" />
-      <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
-        <!-- This empty div ensures stacking context for overlay -->
-      </div>
-      <section class="absolute inset-0 flex items-center justify-center z-10">
-        <div class="container max-w-4xl mx-auto text-center">
-          <h2 class="text-3xl md:text-4xl font-bold mb-6">Do you want to be a magician? ✨</h2>
-          <p class="text-lg md:text-xl text-foreground/70 mb-8">
-            Magic reply it's like magic, transforming your Twitter drafts instantly.
-          </p>
-          <div class="flex justify-center">
-            <ShimmerButton class="px-8 py-4 text-lg font-semibold hover:scale-105 active:scale-95 transition-transform duration-200" shimmer-color="#ffffff" background="#000000">
-              ✨ Become a Twitter Magician
-            </ShimmerButton>
+    <ClientOnly>
+      <Suspense>
+        <CTASection />
+        <template #fallback>
+          <div class="relative h-96 w-full bg-muted/10 flex items-center justify-center">
+            <div class="text-center">
+              <h2 class="text-3xl md:text-4xl font-bold mb-6">Do you want to be a magician? ✨</h2>
+              <p class="text-lg text-foreground/60">Loading magical CTA...</p>
+            </div>
           </div>
-        </div>
-      </section>
-    </section>
+        </template>
+      </Suspense>
+    </ClientOnly>
 
     <!-- Founder Section -->
-    <section class="py-20 px-4 border-t border-border bg-muted/20">
-      <div class="container max-w-4xl mx-auto">
-        <div class="flex flex-col md:flex-row items-center gap-8">
-
-          <div>
-            <AnimatedTooltip :items="[
-              {
-                id: 1,
-                name: 'Timothy @t1m4lc',
-                designation: 'Maker',
-                image: '/me.png'
-              }
-            ]" :avatar-size="32" />
+    <ClientOnly>
+      <Suspense>
+        <FounderSection />
+        <template #fallback>
+          <div class="py-20 px-4 border-t border-border bg-muted/20">
+            <div class="container max-w-4xl mx-auto text-center">
+              <h3 class="text-2xl font-bold mb-4">Built by makers, for makers</h3>
+              <p class="text-lg text-foreground/60">Loading founder section...</p>
+            </div>
           </div>
-
-          <div class="text-center md:text-left">
-            <h3 class="text-2xl font-bold mb-4 text-black dark:text-white">
-              Built by makers, for makers
-            </h3>
-            <p class="text-lg text-foreground/70 mb-6 leading-relaxed">
-              Hey! I'm Timothy, the maker behind Magic Social. I built this because I was tired of spending hours crafting the perfect Twitter replies.
-              Now I can focus on building cool stuff instead of overthinking every tweet. Hope it helps you too!
-              <span class="saturate-150">🚀</span>
-            </p>
-            <a href="https://x.com/t1m4lc" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-2 text-black dark:text-white hover:text-gray-700 dark:hover:text-gray-300 transition-colors font-medium">
-              <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
-              </svg>
-              Follow me on Twitter
-            </a>
-          </div>
-        </div>
-      </div>
-    </section>
+        </template>
+      </Suspense>
+    </ClientOnly>
 
     <!-- Footer -->
     <footer class="border-t border-border py-16 px-4">

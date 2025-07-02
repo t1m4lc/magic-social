@@ -25,4 +25,35 @@ export default defineNuxtConfig({
     "/terms": { prerender: true },
     "/privacy": { prerender: true },
   },
+  image: {
+    format: ["webp", "avif", "jpeg"],
+    quality: 85,
+    densities: [1, 2],
+    screens: {
+      xs: 320,
+      sm: 640,
+      md: 768,
+      lg: 1024,
+      xl: 1280,
+      xxl: 1536,
+    },
+    providers: {
+      pravatar: {
+        provider: "ipx",
+        options: {
+          baseURL: "https://i.pravatar.cc/",
+        },
+      },
+    },
+  },
+  nitro: {
+    compressPublicAssets: true,
+    minify: true,
+  },
+  experimental: {
+    payloadExtraction: false,
+  },
+  features: {
+    inlineStyles: false,
+  },
 });
