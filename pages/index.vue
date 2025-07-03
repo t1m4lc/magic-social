@@ -256,6 +256,47 @@ const tweetTestimonials = [
       </AuroraBackground>
     </section>
 
+    <!-- Product Video Section -->
+    <section class="py-20 px-4 bg-muted/5">
+      <div class="container max-w-6xl mx-auto">
+        <div class="text-center mb-16">
+          <h2 class="text-3xl md:text-4xl font-bold mb-4">See Magic Social in Action</h2>
+          <p class="text-lg text-foreground/60 max-w-2xl mx-auto">
+            Watch how our AI-powered extension transforms your Twitter experience in real-time.
+          </p>
+        </div>
+        
+        <div class="max-w-4xl mx-auto">
+          <div class="relative rounded-2xl overflow-hidden border shadow-2xl bg-gradient-to-br from-blue-50/50 to-purple-50/50 dark:from-blue-950/20 dark:to-purple-950/20">
+            <div class="aspect-video bg-black/5 dark:bg-white/5 flex items-center justify-center">
+              <img 
+                src="/showcase.gif" 
+                alt="Magic Social Chrome Extension Demo - AI-powered Twitter engagement in action"
+                class="w-full h-full object-cover rounded-lg"
+                loading="lazy"
+              />
+            </div>
+            
+            <!-- Video overlay with play button aesthetic -->
+            <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <div class="absolute inset-0 bg-black/10 dark:bg-white/10 rounded-lg opacity-0 hover:opacity-100 transition-opacity duration-300"></div>
+            </div>
+            
+            <!-- Bottom gradient overlay for better text readability -->
+            <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/20 to-transparent h-20 pointer-events-none"></div>
+          </div>
+          
+          <!-- Video description -->
+          <div class="text-center mt-8">
+            <p class="text-sm text-foreground/60 max-w-xl mx-auto">
+              See how Magic Social helps you craft perfect tweets and replies with AI-powered suggestions, 
+              tone customization, and real-time engagement optimization.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- Why Magic Social -->
     <section class="py-20 px-4">
       <div class="container max-w-6xl mx-auto">
@@ -292,27 +333,6 @@ const tweetTestimonials = [
             <p class="text-foreground/60 leading-relaxed">
               No more excuses, you can reply easily.
             </p>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- Extension in Action -->
-    <section id="demo" class="py-20 px-4 bg-muted/10">
-      <div class="container max-w-6xl mx-auto">
-        <div class="text-center mb-16">
-          <h2 class="text-3xl md:text-4xl font-bold mb-4">Magic Social in Action</h2>
-          <p class="text-lg text-foreground/60">Look how easy it is to craft perfect tweets and replies</p>
-        </div>
-        <div class="max-w-4xl mx-auto">
-          <div class="bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 rounded-xl p-8 border border-border/50 shadow-lg">
-            <div class="w-full h-96 bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-900/30 dark:to-purple-900/30 rounded-lg flex items-center justify-center">
-              <div class="text-center">
-                <span class="text-6xl mb-4 block saturate-150" role="img" aria-label="Video demonstration">🎬</span>
-                <p class="text-lg font-semibold text-foreground/80">Extension Demo</p>
-                <p class="text-sm text-foreground/60">GIF: Magic Social generating tweets in real-time</p>
-              </div>
-            </div>
           </div>
         </div>
       </div>
