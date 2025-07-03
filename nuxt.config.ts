@@ -3,6 +3,15 @@ import tailwindcss from "@tailwindcss/vite";
 export default defineNuxtConfig({
   compatibilityDate: "2025-05-15",
   devtools: { enabled: true },
+  $production: {
+    scripts: {
+      registry: {
+        googleAnalytics: {
+          id: "G-53HG2125ED",
+        },
+      },
+    },
+  },
   css: ["~/assets/css/tailwind.css"],
   vite: {
     plugins: [tailwindcss()],
