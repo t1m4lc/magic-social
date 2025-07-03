@@ -39,7 +39,7 @@ const faqs = [
           </h2>
           <p class="text-muted-foreground mb-6">
             Have another question? Contact me on
-            <a href="https://twitter.com/timothyalcaide" rel="noopener" target="_blank" class="text-black dark:text-white hover:text-gray-700 dark:hover:text-gray-300 hover:underline font-medium transition-colors">
+            <a href="https://x.com/t1m4lc" rel="noopener" target="_blank" class="text-black dark:text-white hover:text-gray-700 dark:hover:text-gray-300 hover:underline font-medium transition-colors">
               Twitter
             </a>
             or by

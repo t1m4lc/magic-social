@@ -4,6 +4,7 @@ import LazyAnimatedTooltip from '~/components/ui/animated-tooltip/LazyAnimatedTo
 import { ShimmerButton } from '~/components/ui/shimmer-button'
 import RainbowButton from '~/components/ui/rainbow-button/RainbowButton.vue'
 import AuroraBackground from '~/components/ui/aurora-background/AuroraBackground.vue'
+import MediaLoader from '~/components/MediaLoader.vue'
 
 // Lazy load components for better performance
 const TestimonialsSection = defineAsyncComponent(() => import('~/components/TestimonialsSection.vue'))
@@ -269,12 +270,24 @@ const tweetTestimonials = [
         <div class="max-w-4xl mx-auto">
           <div class="relative rounded-2xl overflow-hidden border shadow-2xl bg-gradient-to-br from-blue-50/50 to-purple-50/50 dark:from-blue-950/20 dark:to-purple-950/20">
             <div class="aspect-video bg-black/5 dark:bg-white/5 flex items-center justify-center">
-              <img 
+              <MediaLoader 
                 src="/showcase.gif" 
-                alt="Magic Social Chrome Extension Demo - AI-powered Twitter engagement in action"
-                class="w-full h-full object-cover rounded-lg"
-                loading="lazy"
-              />
+                media-type="gif"
+                :duration="2000"
+                :min-duration="1000"
+                title="Loading demo..."
+                subtitle="Getting ready to show you Magic Social in action"
+              >
+                <template #default="{ loading, progress }">
+                  <img 
+                    src="/showcase.gif" 
+                    alt="Magic Social Chrome Extension Demo - AI-powered Twitter engagement in action"
+                    class="w-full h-full object-cover rounded-lg transition-all duration-700 ease-out"
+                    :class="{ 'opacity-0 blur-sm scale-105': loading, 'opacity-100 blur-0 scale-100': !loading }"
+                    loading="lazy"
+                  />
+                </template>
+              </MediaLoader>
             </div>
             
             <!-- Video overlay with play button aesthetic -->
