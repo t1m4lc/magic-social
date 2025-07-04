@@ -99,19 +99,17 @@ const signInWithGoogle = async (): Promise<void> => {
   isLoading.value = true
   error.value = null
 
-  const { data, error: fetchError } = await useFetch<{ url: string }>('/api/auth', { method: 'POST' })
-
-  if (fetchError.value) {
-    error.value = fetchError.value.message || 'Failed to sign in with Google'
+  try {
+    const res = await $fetch<{ url: string }>('/api/auth', { method: 'POST' })
+    if (res?.url) {
+      await navigateTo(res.url, { external: true })
+    } else {
+      error.value = 'Failed to get authentication URL'
+    }
+  } catch (err: any) {
+    error.value = err?.data?.message || err?.message || 'Failed to sign in with Google'
+  } finally {
     isLoading.value = false
-    return
   }
-
-  if (data.value?.url) {
-    await navigateTo(data.value.url, { external: true })
-  } else {
-    error.value = 'Failed to get authentication URL'
-  }
-  isLoading.value = false
 }
 </script>
