@@ -8,7 +8,6 @@ export default defineEventHandler(async (event) => {
   // Always redirect to /confirm page
   const redirectTo = `${getRequestURL(event).origin}/confirm`;
 
-  // Sign in with Google OAuth
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",
     options: {

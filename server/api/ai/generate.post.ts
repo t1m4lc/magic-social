@@ -12,11 +12,6 @@ interface RequestBody {
 
 interface ResponseData {
   content: string;
-  usage?: {
-    total_tokens: number;
-    prompt_tokens: number;
-    completion_tokens: number;
-  };
 }
 
 export default defineEventHandler(async (event): Promise<ResponseData> => {
@@ -103,7 +98,6 @@ Write in the same language as the context provided by the user. Use a natural vo
 
     return {
       content: aiResponse.replace(/^["']|["']$/g, ""),
-      usage: response.usage,
     };
   } catch (error: any) {
     console.error("OpenAI API error:", error);

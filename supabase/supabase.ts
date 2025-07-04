@@ -13,22 +13,19 @@ export type Database = {
         Row: {
           created_at: string | null
           id: string
-          timestamp: string | null
-          type: string
+          meta: Json | null
           user_id: string | null
         }
         Insert: {
           created_at?: string | null
           id?: string
-          timestamp?: string | null
-          type: string
+          meta?: Json | null
           user_id?: string | null
         }
         Update: {
           created_at?: string | null
           id?: string
-          timestamp?: string | null
-          type?: string
+          meta?: Json | null
           user_id?: string | null
         }
         Relationships: [
@@ -82,15 +79,12 @@ export type Database = {
           avatar_url: string | null
           created_at: string | null
           email: string
-          goals: string[] | null
           id: string
-          interests: string[] | null
           is_onboarded: boolean | null
           is_pro: boolean | null
           name: string | null
           onboarding_completed_at: string | null
           plan_type: string | null
-          preferences: string[] | null
           stripe_customer_id: string | null
           subscription_status: string | null
           updated_at: string | null
@@ -99,15 +93,12 @@ export type Database = {
           avatar_url?: string | null
           created_at?: string | null
           email: string
-          goals?: string[] | null
           id?: string
-          interests?: string[] | null
           is_onboarded?: boolean | null
           is_pro?: boolean | null
           name?: string | null
           onboarding_completed_at?: string | null
           plan_type?: string | null
-          preferences?: string[] | null
           stripe_customer_id?: string | null
           subscription_status?: string | null
           updated_at?: string | null
@@ -116,15 +107,12 @@ export type Database = {
           avatar_url?: string | null
           created_at?: string | null
           email?: string
-          goals?: string[] | null
           id?: string
-          interests?: string[] | null
           is_onboarded?: boolean | null
           is_pro?: boolean | null
           name?: string | null
           onboarding_completed_at?: string | null
           plan_type?: string | null
-          preferences?: string[] | null
           stripe_customer_id?: string | null
           subscription_status?: string | null
           updated_at?: string | null
