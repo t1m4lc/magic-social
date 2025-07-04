@@ -66,6 +66,14 @@ export default defineNuxtConfig({
   features: {
     inlineStyles: false,
   },
+  runtimeConfig: {
+    // Private keys (only available on server-side)
+    openaiApiKey: process.env.OPENAI_API_KEY,
+    // Public keys (exposed to client-side)
+    public: {
+      // Add public runtime config here if needed
+    },
+  },
   supabase: {
     url: process.env.SUPABASE_URL,
     key: process.env.SUPABASE_KEY,
