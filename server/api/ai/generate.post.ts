@@ -1,4 +1,5 @@
 import type { OpenAIRequest, OpenAIResponse } from "~/types/openai";
+import { serverSupabaseUser } from "#supabase/server";
 
 interface RequestBody {
   context: string;
@@ -19,9 +20,17 @@ interface ResponseData {
 }
 
 export default defineEventHandler(async (event): Promise<ResponseData> => {
+  const user = await serverSupabaseUser(event);
+
+  if (!user) {
+    throw createError({
+      statusCode: 401,
+      statusMessage: "Authentication required to access AI generation",
+    });
+  }
+
   const config = useRuntimeConfig();
 
-  // Validate API key exists
   if (!config.openaiApiKey) {
     throw createError({
       statusCode: 500,
@@ -29,7 +38,6 @@ export default defineEventHandler(async (event): Promise<ResponseData> => {
     });
   }
 
-  // Parse and validate request body
   const body = await readBody<RequestBody>(event);
 
   if (!body.context?.trim()) {
