@@ -28,20 +28,50 @@ export type Database = {
           meta?: Json | null
           user_id?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "openai_usage_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string | null
+          email: string
+          full_name: string | null
+          id: string
+          plan_type: string | null
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          subscription_status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string | null
+          email: string
+          full_name?: string | null
+          id?: string
+          plan_type?: string | null
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          subscription_status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string | null
+          email?: string
+          full_name?: string | null
+          id?: string
+          plan_type?: string | null
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          subscription_status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       rate_limit_settings: {
         Row: {
           created_at: string | null
-          created_by: string | null
           daily_limit: number
           description: string | null
           feature_limits: Json | null
@@ -52,7 +82,6 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
-          created_by?: string | null
           daily_limit: number
           description?: string | null
           feature_limits?: Json | null
@@ -63,58 +92,12 @@ export type Database = {
         }
         Update: {
           created_at?: string | null
-          created_by?: string | null
           daily_limit?: number
           description?: string | null
           feature_limits?: Json | null
           id?: string
           is_active?: boolean | null
           plan_type?: string
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
-      users: {
-        Row: {
-          avatar_url: string | null
-          created_at: string | null
-          email: string
-          id: string
-          is_onboarded: boolean | null
-          is_pro: boolean | null
-          name: string | null
-          onboarding_completed_at: string | null
-          plan_type: string | null
-          stripe_customer_id: string | null
-          subscription_status: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          avatar_url?: string | null
-          created_at?: string | null
-          email: string
-          id?: string
-          is_onboarded?: boolean | null
-          is_pro?: boolean | null
-          name?: string | null
-          onboarding_completed_at?: string | null
-          plan_type?: string | null
-          stripe_customer_id?: string | null
-          subscription_status?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          avatar_url?: string | null
-          created_at?: string | null
-          email?: string
-          id?: string
-          is_onboarded?: boolean | null
-          is_pro?: boolean | null
-          name?: string | null
-          onboarding_completed_at?: string | null
-          plan_type?: string | null
-          stripe_customer_id?: string | null
-          subscription_status?: string | null
           updated_at?: string | null
         }
         Relationships: []

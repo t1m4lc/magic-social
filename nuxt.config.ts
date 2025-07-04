@@ -25,6 +25,7 @@ export default defineNuxtConfig({
     "@nuxtjs/color-mode",
     "@nuxtjs/supabase",
     "dayjs-nuxt",
+    "@unlok-co/nuxt-stripe",
   ],
   shadcn: {
     prefix: "",
@@ -90,6 +91,16 @@ export default defineNuxtConfig({
       callback: "/confirm",
       include: ["/dashboard(/*)?"],
       saveRedirectToCookie: true,
+    },
+  },
+  stripe: {
+    server: {
+      key: process.env.STRIPE_SECRET_KEY,
+      options: {},
+    },
+    client: {
+      key: process.env.STRIPE_PUBLIC_KEY,
+      options: {},
     },
   },
 });
