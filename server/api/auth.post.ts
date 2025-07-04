@@ -1,25 +1,12 @@
-import {
-  serverSupabaseClient,
-  serverSupabaseUser,
-  serverSupabaseServiceRole,
-} from "#supabase/server";
-import {
-  defineEventHandler,
-  createError,
-  sendError,
-  getQuery,
-  getRequestURL,
-} from "h3";
-import { Database } from "~/supabase/supabase";
+import { serverSupabaseClient } from "#supabase/server";
+import { defineEventHandler, createError, sendError, getRequestURL } from "h3";
+import type { Database } from "~/supabase/supabase";
 
 export default defineEventHandler(async (event) => {
   const supabase = await serverSupabaseClient<Database>(event);
 
-  // Get the redirect URL from query params or use default
-  const query = getQuery(event);
-  const redirectTo =
-    (query.redirectTo as string) ||
-    `${getRequestURL(event).origin}/auth/callback`;
+  // Always redirect to /confirm page
+  const redirectTo = `${getRequestURL(event).origin}/confirm`;
 
   // Sign in with Google OAuth
   const { data, error } = await supabase.auth.signInWithOAuth({

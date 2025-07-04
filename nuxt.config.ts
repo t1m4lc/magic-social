@@ -24,6 +24,7 @@ export default defineNuxtConfig({
     "shadcn-nuxt",
     "@nuxtjs/color-mode",
     "@nuxtjs/supabase",
+    "dayjs-nuxt",
   ],
   shadcn: {
     prefix: "",
@@ -34,6 +35,11 @@ export default defineNuxtConfig({
     "/pricing": { prerender: true },
     "/terms": { prerender: true },
     "/privacy": { prerender: true },
+    "/dashboard/**": {
+      headers: {
+        "X-Robots-Tag": "noindex, nofollow",
+      },
+    },
   },
   image: {
     format: ["webp", "avif", "jpeg"],
@@ -78,5 +84,12 @@ export default defineNuxtConfig({
     url: process.env.SUPABASE_URL,
     key: process.env.SUPABASE_KEY,
     serviceKey: process.env.SUPABASE_SERVICE_KEY,
+    redirect: true,
+    redirectOptions: {
+      login: "/login",
+      callback: "/confirm",
+      include: ["/dashboard(/*)?"],
+      saveRedirectToCookie: true,
+    },
   },
 });

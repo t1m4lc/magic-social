@@ -1,5 +1,4 @@
 <script setup>
-import { AnimatedTooltip } from '~/components/ui/animated-tooltip'
 import LazyAnimatedTooltip from '~/components/ui/animated-tooltip/LazyAnimatedTooltip.vue'
 import { ShimmerButton } from '~/components/ui/shimmer-button'
 import RainbowButton from '~/components/ui/rainbow-button/RainbowButton.vue'
@@ -205,6 +204,15 @@ const tweetTestimonials = [
     likes: 87
   }
 ]
+
+const user = useSupabaseUser()
+
+// Redirect if already logged in
+watch(user, (newUser) => {
+  if (newUser) {
+    navigateTo('/dashboard')
+  }
+}, { immediate: true })
 </script>
 
 <template>
