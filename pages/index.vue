@@ -266,7 +266,7 @@ watch(user, (newUser) => {
     </section>
 
     <!-- Product Video Section -->
-    <section class="py-20 px-4 bg-muted/5">
+    <section id="demo" class="py-20 px-4 bg-muted/5">
       <div class="container max-w-6xl mx-auto">
         <div class="text-center mb-16">
           <h2 class="text-3xl md:text-4xl font-bold mb-4">See Magic Social in Action</h2>
