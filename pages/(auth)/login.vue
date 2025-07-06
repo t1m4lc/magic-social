@@ -100,7 +100,7 @@ const signInWithGoogle = async (): Promise<void> => {
   error.value = null
 
   try {
-    const res = await $fetch<{ url: string }>('/api/auth', { method: 'POST' })
+    const res = await $fetch<{ url: string }>('/api/auth/login', { method: 'POST' })
     if (res?.url) {
       await navigateTo(res.url, { external: true })
     } else {
