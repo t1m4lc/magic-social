@@ -1,8 +1,18 @@
 import type { OpenAIRequest, OpenAIResponse } from "~/types/openai";
-import { serverSupabaseUser } from "#supabase/server";
+import { serverSupabaseUser, serverSupabaseClient } from "#supabase/server";
+import { Database } from "~/supabase/supabase";
+
+interface UserPlan {
+  plan_type: string;
+}
+
+interface RateLimitSettings {
+  daily_limit: number;
+}
 
 interface RequestBody {
   context: string;
+  type: "reply" | "comment" | "tweet";
   tone?: string;
   audience?: string;
   formatInstructions?: string;
@@ -24,6 +34,58 @@ export default defineEventHandler(async (event): Promise<ResponseData> => {
     });
   }
 
+  const supabase = await serverSupabaseClient<Database>(event);
+
+  // Fetch user plan from cached endpoint
+  const { plan_type } = await $fetch<UserPlan>("/api/user/plan", {
+    headers: event.headers,
+  });
+
+  // Fetch rate limits from cached endpoint
+  const rateLimitSettings = await $fetch<RateLimitSettings>(
+    `/api/settings/rate-limit?plan_type=${plan_type}`
+  );
+
+  if (!rateLimitSettings) {
+    throw createError({
+      statusCode: 500,
+      statusMessage: "Could not retrieve rate limits",
+    });
+  }
+
+  const twentyFourHoursAgo = new Date(
+    new Date().getTime() - 24 * 60 * 60 * 1000
+  ).toISOString();
+
+  const { count, error: usageError } = await supabase
+    .from("openai_usage")
+    .select("*", { count: "exact", head: true })
+    .eq("user_id", user.id)
+    .gte("created_at", twentyFourHoursAgo);
+
+  if (usageError) {
+    console.error("Error fetching usage data:", usageError);
+    throw createError({
+      statusCode: 500,
+      statusMessage: "Could not retrieve usage data",
+    });
+  }
+
+  if (typeof count !== "number") {
+    throw createError({
+      statusCode: 500,
+      statusMessage: "Could not determine usage count",
+    });
+  }
+
+  if (count >= rateLimitSettings.daily_limit) {
+    throw createError({
+      statusCode: 429,
+      statusMessage:
+        "Daily generation limit reached. Please upgrade your plan.",
+    });
+  }
+
   const config = useRuntimeConfig();
 
   if (!config.openaiApiKey) {
@@ -39,6 +101,13 @@ export default defineEventHandler(async (event): Promise<ResponseData> => {
     throw createError({
       statusCode: 400,
       statusMessage: "Context is required",
+    });
+  }
+
+  if (!body.type) {
+    throw createError({
+      statusCode: 400,
+      statusMessage: "Type is required",
     });
   }
 
@@ -95,6 +164,19 @@ Write in the same language as the context provided by the user. Use a natural vo
 
     const aiResponse =
       response.choices[0]?.message?.content || "No response generated";
+
+    // Insert usage record
+    const { error: insertError } = await supabase.from("openai_usage").insert({
+      user_id: user.id,
+    });
+
+    if (insertError) {
+      console.error("Supabase insert error:", insertError);
+      throw createError({
+        statusCode: 500,
+        statusMessage: "Failed to record usage. Please try again later.",
+      });
+    }
 
     return {
       content: aiResponse.replace(/^["']|["']$/g, ""),
