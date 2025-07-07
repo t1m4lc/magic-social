@@ -7,12 +7,7 @@ export default defineEventHandler(async (event) => {
 
   const redirectTo = getQuery(event).redirect as string;
 
-  if (
-    !redirectTo ||
-    (!redirectTo.startsWith("chrome-extension://") &&
-      !redirectTo.startsWith("https://") &&
-      !redirectTo.includes(".chromiumapp.org"))
-  ) {
+  if (!redirectTo) {
     return sendError(
       event,
       createError({

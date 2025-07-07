@@ -199,6 +199,13 @@ const handleWebhookEvent = async (
   stripeEvent: Stripe.Event,
   serviceRole: any
 ) => {
+  console.debug("[webhook] Received event:", {
+    type: stripeEvent.type,
+    id: stripeEvent.id,
+    created: stripeEvent.created,
+    data: stripeEvent.data?.object,
+  });
+
   const handler = webhookHandlers[stripeEvent.type];
 
   if (handler) {
