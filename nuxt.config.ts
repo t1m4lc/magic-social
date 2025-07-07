@@ -87,7 +87,7 @@ export default defineNuxtConfig({
     serviceKey: process.env.SUPABASE_SERVICE_KEY,
     redirect: true,
     redirectOptions: {
-      login: "/login",
+      login: "/",
       callback: "/confirm",
       include: ["/dashboard(/*)?"],
       saveRedirectToCookie: true,

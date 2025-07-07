@@ -14,7 +14,7 @@ import { AnimatedTooltip } from '~/components/ui/animated-tooltip'
               designation: 'Maker',
               image: '/me.png'
             }
-          ]" :avatar-size="32" />
+          ]" :avatar-size="28" />
         </div>
 
         <div class="text-center md:text-left">

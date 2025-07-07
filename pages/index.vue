@@ -1,5 +1,4 @@
 <script setup>
-import LazyAnimatedTooltip from '~/components/ui/animated-tooltip/LazyAnimatedTooltip.vue'
 import { ShimmerButton } from '~/components/ui/shimmer-button'
 import RainbowButton from '~/components/ui/rainbow-button/RainbowButton.vue'
 import AuroraBackground from '~/components/ui/aurora-background/AuroraBackground.vue'
@@ -256,7 +255,7 @@ watch(user, (newUser) => {
             <!-- Social Proof -->
             <div class="flex justify-center items-center flex-col gap-2 text-sm text-foreground/60">
               <div class="flex items-center gap-2">
-                <LazyAnimatedTooltip :items="socialProof" />
+                <AnimatedTooltip :items="socialProof" />
               </div>
               <span>Used by smart people</span>
             </div>
