@@ -39,8 +39,6 @@ export default defineEventHandler(async (event) => {
     );
   }
 
-  console.log("OAuth URL:", data.url);
-
   return {
     url: data.url,
     provider: "google",
