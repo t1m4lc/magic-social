@@ -8,10 +8,7 @@
         </DialogDescription>
       </DialogHeader>
       <div class="mt-6 flex flex-col gap-3">
-        <Button type="button" variant="default" size="lg" class="w-full" :disabled="submitting" @click="signInWithGoogle">
-          <span v-if="submitting">Signing in...</span>
-          <span v-else>Sign in with Google</span>
-        </Button>
+        <GoogleSignInButton :loading="submitting" @click="signInWithGoogle" />
         <div v-if="error" class="mt-3 text-red-600 text-sm text-center">{{ errorMsg }}</div>
       </div>
     </DialogContent>
@@ -20,33 +17,43 @@
 
 <script setup lang="ts">
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '~/components/ui/dialog'
-import { Button } from '~/components/ui/button'
+import GoogleSignInButton from '~/components/GoogleSignInButton.vue'
+import { useSendTokenToExtension } from '~/composables/extensionNotifications'
 
 defineProps<{ open: boolean }>()
 const emit = defineEmits(['close'])
 
 import { ref } from 'vue'
+import type { Database } from '~/supabase/supabase';
 
 const submitting = ref(false)
 const error = ref(false)
 const errorMsg = ref('')
 
-const supabase = useSupabaseClient()
+const supabase = useSupabaseClient<Database>()
+const { sendToken } = useSendTokenToExtension()
 
 const signInWithGoogle = async (): Promise<void> => {
   submitting.value = true
   error.value = false
   errorMsg.value = ''
+
+  const route = useRoute()
+  const redirect: string = route.fullPath
+  
   try {
     const { error: signInError } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: 'http://localhost:3000/confirm'
+        redirectTo: `http://localhost:3000/confirm?redirect=${redirect}`
       }
     })
     if (signInError) {
       error.value = true
       errorMsg.value = signInError.message
+    } else {
+      // Envoie le token à l'extension après connexion
+      await sendToken()
     }
   } catch (e: any) {
     error.value = true
@@ -55,4 +62,5 @@ const signInWithGoogle = async (): Promise<void> => {
     submitting.value = false
   }
 }
+
 </script>

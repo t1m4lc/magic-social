@@ -162,6 +162,7 @@
 
 <script setup lang="ts">
 import { Button } from '~/components/ui/button'
+import type { Database } from '~/supabase/supabase'
 
 
 useHead({
@@ -172,7 +173,7 @@ useHead({
 })
 
 const user = useSupabaseUser()
-const supabase = useSupabaseClient()
+const supabase = useSupabaseClient<Database>()
 
 const isSigningOut = ref(false)
 
@@ -193,6 +194,7 @@ const signOut = async (): Promise<void> => {
     isSigningOut.value = true
     await supabase.auth.signOut()
     await navigateTo('/')
+    notifyExtensionLogout();
   } catch (error) {
     console.error('Error signing out:', error)
   } finally {
