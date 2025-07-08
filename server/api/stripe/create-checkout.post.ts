@@ -67,24 +67,6 @@ const authenticateUser = async (client: any) => {
   return user;
 };
 
-const fetchUserProfile = async (client: any, userId: string) => {
-  const { data: profile, error: profileError } = await client
-    .from("profiles")
-    .select("stripe_customer_id, email")
-    .eq("id", userId)
-    .single();
-
-  if (profileError) {
-    console.error("Error fetching user profile:", profileError);
-    throw createError({
-      statusCode: 500,
-      statusMessage: "Failed to fetch user profile",
-    });
-  }
-
-  return profile;
-};
-
 const createStripeCustomer = async (
   stripe: any,
   email: string,
@@ -157,9 +139,19 @@ const createCheckoutSession = async (
       },
     ],
     mode: "subscription",
+    subscription_data: {
+      metadata: {
+        supabase_user_id: userId,
+        plan_id: planId,
+      },
+    },
     success_url: successUrl,
     cancel_url: cancelUrl,
-    metadata: createSessionMetadata(userId, planId),
+    metadata: {
+      supabase_user_id: userId,
+      plan_id: planId,
+    },
+    client_reference_id: userId,
   });
 
   if (!session.url) {
@@ -171,16 +163,8 @@ const createCheckoutSession = async (
 
   return session;
 };
-
 // Main handler
 export default defineEventHandler(async (event): Promise<CheckoutResponse> => {
-  if (event.method !== "POST") {
-    throw createError({
-      statusCode: 405,
-      statusMessage: "Method not allowed",
-    });
-  }
-
   const body = await readBody<CheckoutRequest>(event);
 
   // Validate request body
@@ -224,17 +208,70 @@ export default defineEventHandler(async (event): Promise<CheckoutResponse> => {
     // Authenticate user
     const user = await authenticateUser(client);
 
-    // Fetch user profile
-    const profile = await fetchUserProfile(client, user.id);
+    // Fetch user profile (add subscription fields)
+    const profile = await client
+      .from("profiles")
+      .select(
+        "stripe_customer_id, email, stripe_subscription_id, subscription_status"
+      )
+      .eq("id", user.id)
+      .single();
+
+    if (profile.error) {
+      console.error("Error fetching user profile:", profile.error);
+      throw createError({
+        statusCode: 500,
+        statusMessage: "Failed to fetch user profile",
+      });
+    }
+
+    // Prevent multiple subscriptions: check if user already has an active/trialing subscription
+    if (
+      profile.data?.stripe_subscription_id &&
+      typeof profile.data.subscription_status === "string" &&
+      ["active", "trialing"].includes(profile.data.subscription_status)
+    ) {
+      // Redirect to Stripe customer portal for subscription management
+      const portalSession = await stripe.billingPortal.sessions.create({
+        customer: profile.data.stripe_customer_id ?? "",
+        return_url: buildSuccessUrl(baseUrl, successUrl),
+      });
+      return {
+        url: portalSession.url,
+        sessionId: "portal",
+      };
+    }
 
     // Ensure Stripe customer exists
-    const customerId = await ensureCustomer(stripe, serviceRole, profile, user);
+    console.log("[create-checkout] Ensuring Stripe customer for user:", {
+      userId: user.id,
+      email: user.email,
+    });
+    const customerId = await ensureCustomer(
+      stripe,
+      serviceRole,
+      profile.data,
+      user
+    );
 
     // Build URLs
+    console.log("[create-checkout] Building URLs", {
+      baseUrl,
+      successUrl,
+      cancelUrl,
+    });
     const resolvedSuccessUrl = buildSuccessUrl(baseUrl, successUrl);
     const resolvedCancelUrl = buildCancelUrl(baseUrl, cancelUrl);
 
     // Create checkout session (Stripe will handle pricing from the price ID)
+    console.log("[create-checkout] Creating Stripe checkout session", {
+      customerId,
+      priceId,
+      resolvedSuccessUrl,
+      resolvedCancelUrl,
+      userId: user.id,
+      planId,
+    });
     const session = await createCheckoutSession(
       stripe,
       customerId,
@@ -245,6 +282,10 @@ export default defineEventHandler(async (event): Promise<CheckoutResponse> => {
       planId
     );
 
+    console.log("[create-checkout] Stripe session created", {
+      sessionId: session.id,
+      url: session.url,
+    });
     return {
       url: session.url,
       sessionId: session.id,

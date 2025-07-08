@@ -370,3 +370,4 @@ const handleCardClick = (planId) => {
     </AuthModal>
   </div>
 </template>
+dvbPtT
