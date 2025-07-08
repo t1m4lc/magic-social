@@ -28,16 +28,18 @@ export default defineEventHandler(async (event) => {
   }`;
 
   // Fetch the user's profile to get their stripe_customer_id
-  const { data: profile, error: profileError } = await supabaseAdminClient
-    .from("profiles")
-    .select("stripe_customer_id")
-    .eq("id", user.id)
-    .single();
+  const { data: subscription, error: subscriptionError } =
+    await supabaseAdminClient
+      .from("subscriptions")
+      .select("stripe_customer_id")
+      .eq("id", user.id)
+      .limit(1)
+      .single();
 
-  if (profileError || !profile || !profile.stripe_customer_id) {
+  if (subscriptionError || !subscription || !subscription.stripe_customer_id) {
     console.error(
       `[Customer Portal] Error fetching profile or missing Stripe customer ID for user ${user.id}:`,
-      profileError
+      subscriptionError
     );
     throw createError({
       statusCode: 500,

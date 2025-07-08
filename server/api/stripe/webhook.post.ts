@@ -134,29 +134,6 @@ function buildSubscriptionUpsertPayload(
 // SECTION 3: DATABASE INTERACTION FUNCTIONS
 // -----------------------------------------------------------------------------
 
-async function findSupabaseUserByStripeCustomerId(
-  supabase: SupabaseClientAdmin,
-  stripeCustomerId: string
-  // subIdForLog: string // No longer needed for logging
-): Promise<string | null> {
-  const { data: profile, error } = await supabase
-    .from("profiles")
-    .select("id")
-    .eq("stripe_customer_id", stripeCustomerId)
-    .single();
-
-  if (error || !profile) {
-    // It's important for the caller to know this failed.
-    if (error && error.code !== "PGRST116") {
-      // PGRST116: 'Searched for a single row, but found no rows'
-      // Log only unexpected errors if absolutely necessary, or let global handler do it.
-      // For now, we assume the caller will handle/log.
-    }
-    return null;
-  }
-  return profile.id;
-}
-
 async function upsertSupabaseSubscription(
   supabase: SupabaseClientAdmin,
   payload: TablesInsert<"subscriptions">
@@ -172,7 +149,7 @@ async function upsertSupabaseSubscription(
   return { success: true };
 }
 
-async function updateSubscriptionStatusInDb( // Renamed for clarity
+async function updateSubscriptionStatusInDb(
   supabase: SupabaseClientAdmin,
   stripeSubscriptionId: string,
   status: StripeSubscription["status"]
@@ -192,45 +169,25 @@ async function updateSubscriptionStatusInDb( // Renamed for clarity
 
 async function resolveSupabaseUserId(
   sub: StripeSubscription,
-  supabase: SupabaseClientAdmin
+  _supabase: SupabaseClientAdmin
 ): Promise<string | null> {
-  let supabaseUserId = getSupabaseUserIDFromMetadata(sub);
-
-  if (!supabaseUserId) {
-    const stripeCustomerId = getStripeCustomerID(sub);
-    if (stripeCustomerId) {
-      supabaseUserId = await findSupabaseUserByStripeCustomerId(
-        supabase,
-        stripeCustomerId
-      );
-    } else {
-      // This is an issue, but logging is deferred to the main handler.
-      // Throwing an error or returning a specific result might be better.
-      // For now, returning null and letting syncSubscriptionDataCore handle it.
-      return null;
-    }
-  }
-
-  if (!supabaseUserId) {
-    return null;
-  }
-  return supabaseUserId;
+  // Only use metadata for user resolution
+  const supabaseUserId = getSupabaseUserIDFromMetadata(sub);
+  return supabaseUserId || null;
 }
 
 async function syncSubscriptionDataCore(
   supabase: SupabaseClientAdmin,
   sub: StripeSubscription,
-  stripeInstance: Stripe // Pass Stripe instance for potential logging context if re-enabled
+  stripeInstance: Stripe
 ): Promise<{ success: boolean; error?: string | object }> {
   const subId = sub.id;
-  // console.log with full object removed
 
   const supabaseUserId = await resolveSupabaseUserId(sub, supabase);
   if (!supabaseUserId) {
-    // This is a critical failure point for syncing this subscription.
     return {
       success: false,
-      error: `Supabase User ID could not be resolved for Stripe subscription ${subId}.`,
+      error: `Supabase User ID could not be resolved from subscription metadata for Stripe subscription ${subId}.`,
     };
   }
 
