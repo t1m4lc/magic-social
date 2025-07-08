@@ -2,7 +2,7 @@ import tailwindcss from "@tailwindcss/vite";
 
 export default defineNuxtConfig({
   compatibilityDate: "2025-05-15",
-  devtools: { enabled: true },
+  devtools: { enabled: false },
   $production: {
     scripts: {
       registry: {
@@ -76,6 +76,7 @@ export default defineNuxtConfig({
   runtimeConfig: {
     // Private keys (only available on server-side)
     openaiApiKey: process.env.OPENAI_API_KEY,
+    stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET,
     // Public keys (exposed to client-side)
     public: {
       // Add public runtime config here if needed
@@ -87,7 +88,7 @@ export default defineNuxtConfig({
     serviceKey: process.env.SUPABASE_SERVICE_KEY,
     redirect: true,
     redirectOptions: {
-      login: "/login",
+      login: "/",
       callback: "/confirm",
       include: ["/dashboard(/*)?"],
       saveRedirectToCookie: true,

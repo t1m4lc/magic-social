@@ -3,6 +3,8 @@ import { ShimmerButton } from '~/components/ui/shimmer-button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '~/components/ui/card'
 import { Button } from '~/components/ui/button'
 import { Check, X, DollarSign, Shield, Lock } from 'lucide-vue-next'
+import AuthModal from '~/components/AuthModal.vue'
+import GoogleSignInButton from '~/components/GoogleSignInButton.vue'
 
 // Use VueUse composables instead of window object
 const { origin } = useRequestURL()
@@ -14,7 +16,6 @@ const error = ref(null)
 // Handle subscription checkout
 const handleSubscribe = async (planId) => {
   if (isLoading.value) return
-  
   isLoading.value = true
   error.value = null
 
@@ -70,6 +71,48 @@ const installExtensionLabel = 'Install Magic Social Chrome Extension'
 // Reorganized plans data - FREE, PRO, ULTIMATE order
 const plans = [
   {
+    id: 'ultimate',
+    name: 'ULTIMATE',
+    price: '€39',
+    period: '/mo',
+    description: 'Advanced automation and scaling features',
+    popular: false,
+    available: true,
+    availableFeatures: [
+      'Everything in Pro',
+      '1500 OpenAI requests per 24 hours',
+      'Automation',
+      'Schedule posts',
+      'Auto-like feature'
+    ],
+    unavailableFeatures: [],
+    buttonText: 'Contact',
+    buttonVariant: 'contact'
+  },
+  {
+    id: 'pro',
+    name: 'PRO',
+    price: '€4',
+    period: '/mo',
+    description: 'For serious Twitter growth and engagement',
+    popular: true,
+    available: true,
+    availableFeatures: [
+      'Everything in Free',
+      '150 OpenAI requests per 24 hours',
+      'Custom format instructions',
+      'Save & reuse custom prompts',
+      'Prioritize support'
+    ],
+    unavailableFeatures: [
+      'Automation',
+      'Schedule posts',
+      'Auto-like feature'
+    ],
+    buttonText: 'Upgrade to Pro',
+    buttonVariant: 'default'
+  },
+  {
     id: 'free',
     name: 'FREE',
     price: '€0',
@@ -92,49 +135,20 @@ const plans = [
     buttonText: 'Get Started Free',
     buttonVariant: 'outline'
   },
-  {
-    id: 'pro',
-    name: 'PRO',
-    price: '€5',
-    period: '/mo',
-    description: 'For serious Twitter growth and engagement',
-    popular: true,
-    available: true,
-    availableFeatures: [
-      'Everything in Free',
-      '150 OpenAI requests per 24 hours',
-      'Custom format instructions',
-      'Save & reuse custom prompts',
-      'Prioritize support'
-    ],
-    unavailableFeatures: [
-      'Automation',
-      'Schedule posts',
-      'Auto-like feature'
-    ],
-    buttonText: 'Upgrade to Pro',
-    buttonVariant: 'default'
-  },
-  {
-    id: 'ultimate',
-    name: 'ULTIMATE',
-    price: '€45',
-    period: '/mo',
-    description: 'Advanced automation and scaling features',
-    popular: false,
-    available: true,
-    availableFeatures: [
-      'Everything in Pro',
-      '1500 OpenAI requests per 24 hours',
-      'Automation',
-      'Schedule posts',
-      'Auto-like feature'
-    ],
-    unavailableFeatures: [],
-    buttonText: 'Contact me',
-    buttonVariant: 'contact'
-  }
 ]
+
+const user = useSupabaseUser()
+const showAuthModal = ref(false)
+
+const handleCardClick = (planId) => {
+  if (!user.value) {
+    showAuthModal.value = true
+    return
+  }
+  if (planId === 'pro') handleSubscribe('pro')
+  else if (planId === 'free') navigateTo('/dashboard')
+  else if (planId === 'ultimate') navigateTo('mailto:timothyalcaide+magic@gmail.com?subject=Ultimate%20Plan%20Inquiry&body=Hi!%20I%27m%20interested%20in%20the%20Ultimate%20plan%20for%20Magic%20Social.%20Could%20you%20please%20provide%20more%20details%20about%20pricing%20and%20availability%3F', { external: true })
+}
 </script>
 
 <template>
@@ -152,11 +166,7 @@ const plans = [
           <NuxtLink to="/#testimonials" :class="navLinkClasses">Reviews</NuxtLink>
           <NuxtLink to="/pricing" class="text-foreground hover:text-foreground transition-colors font-medium">Pricing</NuxtLink>
         </nav>
-        <ShimmerButton 
-          :class="`px-4 py-2 text-sm ${buttonTransition}`" 
-          v-bind="primaryButtonProps" 
-          :aria-label="installExtensionLabel"
-        >
+        <ShimmerButton :class="`px-4 py-2 text-sm ${buttonTransition}`" v-bind="primaryButtonProps" :aria-label="installExtensionLabel">
           Install Extension
         </ShimmerButton>
       </div>
@@ -194,24 +204,21 @@ const plans = [
       <div class="container max-w-7xl mx-auto">
         <div class="grid lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
           <Card
-            v-for="plan in plans.reverse()" 
+            v-for="plan in plans"
             :key="plan.name"
             :class="[
-              'relative transition-all duration-300',
+              'relative transition-all duration-300 cursor-pointer',
               plan.popular ? 'border-primary shadow-lg lg:scale-105' : '',
               plan.buttonVariant === 'contact' ? 'opacity-75' : ''
             ]"
+            @click="handleCardClick(plan.id)"
           >
             <!-- Popular Badge -->
-            <div 
-              v-if="plan.popular" 
-              class="absolute -top-3 left-1/2 transform -translate-x-1/2"
-            >
+            <div v-if="plan.popular" class="absolute -top-3 left-1/2 transform -translate-x-1/2">
               <span class="bg-primary text-primary-foreground px-4 py-1 rounded-full text-sm font-medium">
                 Most Popular
               </span>
             </div>
-            
             <CardHeader class="text-center pb-4">
               <CardTitle class="text-2xl font-bold">{{ plan.name }}</CardTitle>
               <CardDescription class="text-sm">{{ plan.description }}</CardDescription>
@@ -220,71 +227,29 @@ const plans = [
                 <span class="text-muted-foreground ml-1">{{ plan.period }}</span>
               </div>
             </CardHeader>
-            
             <CardContent class="flex-1">
               <ul class="space-y-3">
-                <!-- Available Features -->
-                <li 
-                  v-for="feature in plan.availableFeatures" 
-                  :key="`available-${feature}`" 
-                  class="flex items-start gap-3"
-                >
+                <li v-for="feature in plan.availableFeatures" :key="`available-${feature}`" class="flex items-start gap-3">
                   <Check class="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
                   <span class="text-sm text-foreground">{{ feature }}</span>
                 </li>
-                
-                <!-- Unavailable Features -->
-                <li 
-                  v-for="feature in plan.unavailableFeatures" 
-                  :key="`unavailable-${feature}`" 
-                  class="flex items-start gap-3"
-                >
+                <li v-for="feature in plan.unavailableFeatures" :key="`unavailable-${feature}`" class="flex items-start gap-3">
                   <X class="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
                   <span class="text-sm text-muted-foreground">{{ feature }}</span>
                 </li>
               </ul>
             </CardContent>
-            
             <CardFooter>
-              <Button
-                v-if="plan.buttonVariant === 'default'"
-                variant="default"
-                size="lg"
-                class="w-full"
-                :disabled="isLoading"
-                @click="handleSubscribe('pro')"
-              >
-                <span v-if="isLoading">Creating checkout...</span>
-                <span v-else>{{ plan.buttonText }}</span>
-              </Button>
-              
-              <Button
-                v-else-if="plan.buttonVariant === 'outline'"
-                variant="outline"
-                size="lg"
-                class="w-full"
-                @click="navigateTo('/dashboard')"
-              >
+              <Button v-if="plan.buttonVariant === 'default'" variant="default" size="lg" class="w-full pointer-events-none">
                 {{ plan.buttonText }}
               </Button>
-
-              <Button
-                v-else-if="plan.buttonVariant === 'contact'"
-                variant="default"
-                size="lg"
-                class="w-full"
-                @click="navigateTo('mailto:timothyalcaide+magic@gmail.com?subject=Ultimate%20Plan%20Inquiry&body=Hi!%20I%27m%20interested%20in%20the%20Ultimate%20plan%20for%20Magic%20Social.%20Could%20you%20please%20provide%20more%20details%20about%20pricing%20and%20availability%3F', { external: true })"
-              >
+              <Button v-else-if="plan.buttonVariant === 'outline'" variant="outline" size="lg" class="w-full pointer-events-none">
                 {{ plan.buttonText }}
               </Button>
-
-              <Button
-                v-else
-                variant="secondary"
-                size="lg"
-                class="w-full"
-                disabled
-              >
+              <Button v-else-if="plan.buttonVariant === 'contact'" variant="default" size="lg" class="w-full pointer-events-none">
+                {{ plan.buttonText }}
+              </Button>
+              <Button v-else variant="secondary" size="lg" class="w-full pointer-events-none">
                 {{ plan.buttonText }}
               </Button>
             </CardFooter>
@@ -357,11 +322,7 @@ const plans = [
           Start free today and experience the magic of AI-powered Twitter engagement.
         </p>
         <div class="flex flex-col sm:flex-row gap-4 justify-center items-center">
-          <ShimmerButton 
-            :class="`px-8 py-4 text-lg font-semibold ${buttonTransition}`" 
-            v-bind="primaryButtonProps" 
-            :aria-label="installExtensionLabel"
-          >
+          <ShimmerButton :class="`px-8 py-4 text-lg font-semibold ${buttonTransition}`" v-bind="primaryButtonProps" :aria-label="installExtensionLabel">
             ✨ Install Chrome Extension
           </ShimmerButton>
         </div>
@@ -397,5 +358,15 @@ const plans = [
         </div>
       </div>
     </footer>
+
+    <!-- Auth Modal -->
+    <AuthModal :open="showAuthModal" @close="showAuthModal = false">
+      <div class="flex flex-col gap-4">
+        <Button variant="default" size="lg" class="w-full" @click="navigateTo('/auth/confirm')">
+          Continue with Email
+        </Button>
+        <GoogleSignInButton class="w-full" />
+      </div>
+    </AuthModal>
   </div>
 </template>
