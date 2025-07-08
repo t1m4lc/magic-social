@@ -301,12 +301,24 @@ async function handleCheckoutSessionCompleted(
     session.subscription &&
     session.customer
   ) {
-    return await retrieveAndSyncSubscription(
+    // Fetch the subscription from Stripe
+    const fullSubscription = await stripe.subscriptions.retrieve(
       session.subscription as string,
-      stripe,
-      supabase,
-      "checkout.session.completed"
+      {
+        expand: ["items.data.price.product", "customer"],
+      }
     );
+    // Patch: If supabase_user_id is missing from subscription metadata, inject from session
+    if (
+      !fullSubscription.metadata?.supabase_user_id &&
+      session.metadata?.supabase_user_id
+    ) {
+      fullSubscription.metadata = {
+        ...fullSubscription.metadata,
+        supabase_user_id: session.metadata.supabase_user_id,
+      };
+    }
+    return await syncSubscriptionDataCore(supabase, fullSubscription, stripe);
   } else {
     // Not an error, just not a relevant event for subscription sync
     return {
