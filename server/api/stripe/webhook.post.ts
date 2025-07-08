@@ -1,7 +1,5 @@
-import { useServerStripe } from "#stripe/server";
 import { serverSupabaseServiceRole } from "#supabase/server";
-import type { H3Event } from "h3";
-import type { Stripe } from "stripe";
+import { Stripe } from "stripe";
 import { Database, TablesInsert } from "~/supabase/supabase";
 
 // SECTION 1: TYPES
@@ -475,103 +473,37 @@ async function processStripeEvent(
   return { processed: true, success: true, eventType: type };
 }
 
-async function verifyStripeWebhookSignature(
-  event: H3Event,
-  stripeClient: Stripe,
-  secret: string
-): Promise<Stripe.Event | null> {
-  const signature = getHeader(event, "stripe-signature");
-  if (!signature) {
-    return null;
-  }
+export const config = {
+  bodyParser: false, // Stripe requires raw body for signature verification
+};
 
+export default defineEventHandler(async (event) => {
+  const config = useRuntimeConfig();
+  const stripe = new Stripe(config.stripeSecretKey);
+
+  const sig = event.node.req.headers["stripe-signature"] as string;
   const rawBody = await readRawBody(event);
-  if (!rawBody) {
-    return null;
-  }
 
+  let stripeEvent: Stripe.Event;
   try {
-    return stripeClient.webhooks.constructEvent(rawBody, signature, secret);
-  } catch (err: any) {
-    return null;
-  }
-}
-
-export default defineEventHandler(async (event: H3Event) => {
-  const stripeClient = await useServerStripe(event);
-  const supabaseClientAdmin = serverSupabaseServiceRole<Database>(event);
-  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
-
-  if (!webhookSecret) {
-    console.error(
-      "[Webhook] CRITICAL: Stripe webhook secret is not configured."
-    ); // Keep critical config error
-    throw createError({
-      statusCode: 500,
-      message: "Webhook secret not configured.",
-    });
-  }
-
-  const stripeEvent = await verifyStripeWebhookSignature(
-    event,
-    stripeClient,
-    webhookSecret
-  );
-  if (!stripeEvent) {
-    // Log the verification failure before throwing, as this is a security concern.
-    console.error(
-      "[Webhook] Stripe webhook signature verification failed. Raw body might have been tampered or secret is wrong."
+    stripeEvent = stripe.webhooks.constructEvent(
+      rawBody!,
+      sig,
+      config.stripeWebhookSecret
     );
-    throw createError({
-      statusCode: 400,
-      message: "Webhook signature verification failed.",
-    });
+  } catch (err) {
+    console.error("Webhook signature error:", err);
+    return send(event, 400, "Webhook Error");
   }
 
-  try {
-    const processingResult = await processStripeEvent(
-      stripeEvent,
-      stripeClient,
-      supabaseClientAdmin
-    );
+  // Dispatch to your existing event processing logic
+  const supabase = serverSupabaseServiceRole<Database>(event);
+  const result = await processStripeEvent(stripeEvent, stripe, supabase);
 
-    if (!processingResult.success) {
-      // Log significant processing errors here, as Stripe got the event but we failed to process.
-      console.error(
-        `[Webhook] Error processing Stripe event ${stripeEvent.id} (Type: ${stripeEvent.type}):`,
-        processingResult.error || "Unknown processing error."
-      );
-    } else if (
-      processingResult.error &&
-      processingResult.error.toString().startsWith("Unhandled event type")
-    ) {
-      // Log unhandled event types for monitoring, but not as an error.
-      console.log(
-        `[Webhook] Info: ${processingResult.error} (Event ID: ${stripeEvent.id})`
-      );
-    }
-    // Always return 200 to Stripe if signature was verified, to acknowledge receipt.
-    // The success/error in the body is for our own logging/debugging.
-    return {
-      received: true,
-      eventId: stripeEvent.id,
-      eventType: stripeEvent.type,
-      processedOk: processingResult.success,
-      details: processingResult.error, // This could be a string or an object
-    };
-  } catch (error: any) {
-    // This catch is for truly unexpected errors within processStripeEvent or its callees
-    // that weren't caught and returned as a processingResult.
-    console.error(
-      `[Webhook] UNHANDLED EXCEPTION while processing Stripe event ${stripeEvent.id} (Type: ${stripeEvent.type}):`,
-      error
-    );
-    return {
-      received: true,
-      eventId: stripeEvent.id,
-      eventType: stripeEvent.type,
-      processedOk: false,
-      details: "Critical internal server error during event processing.",
-    };
+  // Optionally log or handle errors here
+  if (result && result.error) {
+    console.error("Stripe webhook processing error:", result.error);
   }
+
+  return { received: true };
 });
