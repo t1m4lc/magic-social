@@ -45,7 +45,7 @@ const signInWithGoogle = async (): Promise<void> => {
     const { error: signInError } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `http://localhost:3000/confirm?redirect=${redirect}`
+      redirectTo: `${window.location.origin}/confirm?redirect=${redirect}`
       }
     })
     if (signInError) {

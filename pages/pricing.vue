@@ -1,39 +1,58 @@
-<script setup>
+<script setup lang="ts">
 import { ShimmerButton } from '~/components/ui/shimmer-button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '~/components/ui/card'
 import { Button } from '~/components/ui/button'
 import { Check, X, DollarSign, Shield, Lock } from 'lucide-vue-next'
 import AuthModal from '~/components/AuthModal.vue'
 import GoogleSignInButton from '~/components/GoogleSignInButton.vue'
+import { convertPriceIdToPlanType } from '~/shared/price.util'
 
-// Use VueUse composables instead of window object
-const { origin } = useRequestURL()
 
-// Loading state for subscription actions
+// Utility to always provide a valid origin with scheme
+const getOrigin = (): string => {
+  // Prefer Nuxt's useRequestURL composable
+  const { origin } = useRequestURL()
+  if (origin && /^https?:\/\//.test(origin)) return origin
+  if (process.client && typeof window !== 'undefined') {
+    const winOrigin = window.location.origin
+    if (/^https?:\/\//.test(winOrigin)) return winOrigin
+  }
+  // Fallback: use https for production, http for localhost
+  if (process.env.NODE_ENV === 'production') {
+    return 'https://magic-social.com' // <-- replace with your production domain
+  }
+  return 'http://localhost:3000'
+}
+
 const isLoading = ref(false)
-const error = ref(null)
+const error = ref<string | null>(null)
 
 // Handle subscription checkout
-const handleSubscribe = async (planId) => {
+const handleSubscribe = async (priceId: string): Promise<void> => {
   if (isLoading.value) return
   isLoading.value = true
   error.value = null
 
+  const origin = getOrigin()
+
   try {
-    const { url } = await $fetch('/api/stripe/create-checkout', {
+    const response = await $fetch('/api/stripe/checkout-session', {
       method: 'POST',
       body: {
-        planId,
-        successUrl: `${origin}/dashboard?success=true&plan=${planId}`,
+        priceId: priceId,
+        successUrl: `${origin}/dashboard?success=true&plan=${convertPriceIdToPlanType(priceId)}`,
         cancelUrl: `${origin}/pricing?canceled=true`
       }
     })
 
+    console.log("RESPONSE", response);
+
+
     // Use navigateTo for client-side navigation
-    await navigateTo(url, { external: true })
-  } catch (err) {
+    await navigateTo(response.sessionUrl, { external: true })
+  } catch (err: any) {
     console.error('Checkout error:', err)
-    error.value = err.data?.message || 'Failed to create checkout session'
+    error.value = err?.data?.message || err?.message || 'Failed to create checkout session'
   } finally {
     isLoading.value = false
   }
@@ -41,7 +60,9 @@ const handleSubscribe = async (planId) => {
 
 // Handle query parameters for success/cancel states
 const route = useRoute()
-const { success, canceled, plan } = route.query
+const success = computed<boolean>(() => Boolean(route.query.success))
+const canceled = computed<boolean>(() => Boolean(route.query.canceled))
+const plan = computed<string | undefined>(() => typeof route.query.plan === 'string' ? route.query.plan : undefined)
 
 useHead({
   title: 'Pricing - Magic Social | AI-powered Twitter Chrome Extension',
@@ -59,20 +80,27 @@ useHead({
   ]
 })
 
-// Shared styles and properties
-const buttonTransition = "hover:scale-105 active:scale-95 transition-transform duration-200"
-const navLinkClasses = "text-foreground/60 hover:text-foreground transition-colors"
-const primaryButtonProps = {
-  'shimmer-color': '#ffffff',
-  background: '#000000'
-}
-const installExtensionLabel = 'Install Magic Social Chrome Extension'
 
-// Reorganized plans data - FREE, PRO, ULTIMATE order
-const plans = [
+interface Plan {
+  id: string
+  stripe_price_id: string | null
+  name: string
+  price: string
+  period: string
+  description: string
+  popular: boolean
+  available: boolean
+  availableFeatures: string[]
+  unavailableFeatures: string[]
+  buttonText: string
+  buttonVariant: 'default' | 'outline' | 'contact' | string
+}
+
+const plans: Plan[] = [
   {
     id: 'ultimate',
     name: 'ULTIMATE',
+    stripe_price_id: null,
     price: '€39',
     period: '/mo',
     description: 'Advanced automation and scaling features',
@@ -83,15 +111,18 @@ const plans = [
       '1500 OpenAI requests per 24 hours',
       'Automation',
       'Schedule posts',
-      'Auto-like feature'
+      'Auto-like feature',
+      'Prioritize support',
+
     ],
     unavailableFeatures: [],
     buttonText: 'Contact',
-    buttonVariant: 'contact'
+    buttonVariant: 'contact',
   },
   {
     id: 'pro',
     name: 'PRO',
+    stripe_price_id: String(useRuntimeConfig().public.stripeProPriceId ?? ''),
     price: '€4',
     period: '/mo',
     description: 'For serious Twitter growth and engagement',
@@ -102,19 +133,20 @@ const plans = [
       '150 OpenAI requests per 24 hours',
       'Custom format instructions',
       'Save & reuse custom prompts',
-      'Prioritize support'
     ],
     unavailableFeatures: [
       'Automation',
       'Schedule posts',
-      'Auto-like feature'
+      'Auto-like feature',
+      'Prioritize support',
     ],
     buttonText: 'Upgrade to Pro',
-    buttonVariant: 'default'
+    buttonVariant: 'default',
   },
   {
     id: 'free',
     name: 'FREE',
+    stripe_price_id: null,
     price: '€0',
     period: '/mo',
     description: 'Perfect for testing and getting started',
@@ -123,31 +155,42 @@ const plans = [
     availableFeatures: [
       '5 requests/day (for testing)',
       'Custom tone',
-      'Custom target audience',
     ],
     unavailableFeatures: [
+      'Custom target audience',
       'Custom format instructions',
       'Save & reuse custom prompts',
       'Automation',
       'Schedule posts',
-      'Auto-like feature'
+      'Auto-like feature',
+      'Prioritize support',
     ],
     buttonText: 'Get Started Free',
-    buttonVariant: 'outline'
+    buttonVariant: 'outline',
   },
 ]
+
 
 const user = useSupabaseUser()
 const showAuthModal = ref(false)
 
-const handleCardClick = (planId) => {
+const handleCardClick = (priceId: string | null) => {
+  if (!priceId) {
+    console.log('Need priceId');
+    return
+  }
+
   if (!user.value) {
     showAuthModal.value = true
     return
   }
-  if (planId === 'pro') handleSubscribe('pro')
-  else if (planId === 'free') navigateTo('/dashboard')
-  else if (planId === 'ultimate') navigateTo('mailto:timothyalcaide+magic@gmail.com?subject=Ultimate%20Plan%20Inquiry&body=Hi!%20I%27m%20interested%20in%20the%20Ultimate%20plan%20for%20Magic%20Social.%20Could%20you%20please%20provide%20more%20details%20about%20pricing%20and%20availability%3F', { external: true })
+  const planType = convertPriceIdToPlanType(priceId)
+  console.log(planType, priceId);
+
+  if (planType === 'pro') handleSubscribe(priceId)
+  else if (planType === 'free') navigateTo(`/dashboard?success=true&plan=${planType}`)
+  else if (planType === 'ultimate') navigateTo('mailto:timothyalcaide+magic@gmail.com?subject=Ultimate%20Plan%20Inquiry&body=Hi!%20I%27m%20interested%20in%20the%20Ultimate%20plan%20for%20Magic%20Social.%20Could%20you%20please%20provide%20more%20details%20about%20pricing%20and%20availability%3F', { external: true })
+  else throw new Error('No plan type found')
 }
 </script>
 
@@ -161,12 +204,12 @@ const handleCardClick = (planId) => {
           <span class="font-semibold text-lg">Magic Social</span>
         </NuxtLink>
         <nav class="hidden md:flex items-center space-x-6 text-sm">
-          <NuxtLink to="/#demo" :class="navLinkClasses">Demo</NuxtLink>
-          <NuxtLink to="/#features" :class="navLinkClasses">Features</NuxtLink>
-          <NuxtLink to="/#testimonials" :class="navLinkClasses">Reviews</NuxtLink>
+          <NuxtLink to="/#demo" class="text-foreground/60 hover:text-foreground transition-colors">Demo</NuxtLink>
+          <NuxtLink to="/#features" class="text-foreground/60 hover:text-foreground transition-colors">Features</NuxtLink>
+          <NuxtLink to="/#testimonials" class="text-foreground/60 hover:text-foreground transition-colors">Reviews</NuxtLink>
           <NuxtLink to="/pricing" class="text-foreground hover:text-foreground transition-colors font-medium">Pricing</NuxtLink>
         </nav>
-        <ShimmerButton :class="`px-4 py-2 text-sm ${buttonTransition}`" v-bind="primaryButtonProps" :aria-label="installExtensionLabel">
+        <ShimmerButton class="px-4 py-2 text-sm hover:scale-105 active:scale-95 transition-transform duration-200" shimmer-color='#ffffff' background='#000000' aria-label="Install Magic Social Chrome Extension">
           Install Extension
         </ShimmerButton>
       </div>
@@ -203,16 +246,11 @@ const handleCardClick = (planId) => {
     <section class="py-20 px-4">
       <div class="container max-w-7xl mx-auto">
         <div class="grid lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
-          <Card
-            v-for="plan in plans"
-            :key="plan.name"
-            :class="[
-              'relative transition-all duration-300 cursor-pointer',
-              plan.popular ? 'border-primary shadow-lg lg:scale-105' : '',
-              plan.buttonVariant === 'contact' ? 'opacity-75' : ''
-            ]"
-            @click="handleCardClick(plan.id)"
-          >
+          <Card v-for="plan in plans" :key="plan.name" :class="[
+            'relative transition-all duration-300',
+            plan.popular ? 'border-primary shadow-lg lg:scale-105' : '',
+            plan.buttonVariant === 'contact' ? 'opacity-75' : ''
+          ]">
             <!-- Popular Badge -->
             <div v-if="plan.popular" class="absolute -top-3 left-1/2 transform -translate-x-1/2">
               <span class="bg-primary text-primary-foreground px-4 py-1 rounded-full text-sm font-medium">
@@ -240,16 +278,16 @@ const handleCardClick = (planId) => {
               </ul>
             </CardContent>
             <CardFooter>
-              <Button v-if="plan.buttonVariant === 'default'" variant="default" size="lg" class="w-full pointer-events-none">
+              <Button @click="handleCardClick(plan.stripe_price_id)" v-if="plan.buttonVariant === 'default'" variant="default" size="lg" class="w-full">
                 {{ plan.buttonText }}
               </Button>
-              <Button v-else-if="plan.buttonVariant === 'outline'" variant="outline" size="lg" class="w-full pointer-events-none">
+              <Button @click="handleCardClick(plan.stripe_price_id)" v-else-if="plan.buttonVariant === 'outline'" variant="outline" size="lg" class="w-full">
                 {{ plan.buttonText }}
               </Button>
-              <Button v-else-if="plan.buttonVariant === 'contact'" variant="default" size="lg" class="w-full pointer-events-none">
+              <Button @click="handleCardClick(plan.stripe_price_id)" v-else-if="plan.buttonVariant === 'contact'" variant="default" size="lg" class="w-full">
                 {{ plan.buttonText }}
               </Button>
-              <Button v-else variant="secondary" size="lg" class="w-full pointer-events-none">
+              <Button @click="handleCardClick(plan.stripe_price_id)" v-else variant="secondary" size="lg" class="w-full">
                 {{ plan.buttonText }}
               </Button>
             </CardFooter>
@@ -322,7 +360,7 @@ const handleCardClick = (planId) => {
           Start free today and experience the magic of AI-powered Twitter engagement.
         </p>
         <div class="flex flex-col sm:flex-row gap-4 justify-center items-center">
-          <ShimmerButton :class="`px-8 py-4 text-lg font-semibold ${buttonTransition}`" v-bind="primaryButtonProps" :aria-label="installExtensionLabel">
+          <ShimmerButton class="px-4 py-2 text-sm hover:scale-105 active:scale-95 transition-transform duration-200" shimmer-color='#ffffff' background='#000000' aria-label="Install Magic Social Chrome Extension">
             ✨ Install Chrome Extension
           </ShimmerButton>
         </div>
@@ -339,16 +377,16 @@ const handleCardClick = (planId) => {
 
         <!-- Footer Links -->
         <div class="flex justify-center space-x-8 mb-8">
-          <NuxtLink to="/pricing" :class="`text-sm ${navLinkClasses}`">
+          <NuxtLink to="/pricing" class="text-sm text-foreground/60 hover:text-foreground transition-colors">
             Pricing
           </NuxtLink>
-          <NuxtLink to="/terms" :class="`text-sm ${navLinkClasses}`">
+          <NuxtLink to="/terms" class="text-sm text-foreground/60 hover:text-foreground transition-colors">
             Terms
           </NuxtLink>
-          <NuxtLink to="/privacy" :class="`text-sm ${navLinkClasses}`">
+          <NuxtLink to="/privacy" class="text-sm text-foreground/60 hover:text-foreground transition-colors">
             Privacy
           </NuxtLink>
-          <a href="mailto:timothyalcaide+magic@gmail.com" :class="`text-sm ${navLinkClasses}`">
+          <a href="mailto:timothyalcaide+magic@gmail.com" class="text-sm text-foreground/60 hover:text-foreground transition-colors">
             Contact
           </a>
         </div>

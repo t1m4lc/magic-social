@@ -1,4 +1,5 @@
 import { serverSupabaseUser, serverSupabaseClient } from "#supabase/server";
+import { convertPriceIdToPlanType } from "~/shared/price.util";
 import { Database } from "~/supabase/supabase";
 
 export default defineCachedEventHandler(
@@ -14,13 +15,13 @@ export default defineCachedEventHandler(
 
     const supabase = await serverSupabaseClient<Database>(event);
 
-    const { data: userProfile, error: profileError } = await supabase
-      .from("profiles")
-      .select("plan_type")
-      .eq("id", user.id)
+    const { data: subscription, error: profileError } = await supabase
+      .from("subscriptions")
+      .select("stripe_price_id")
+      .eq("user_id", user.id)
       .single();
 
-    if (profileError || !userProfile) {
+    if (profileError || !subscription.stripe_price_id) {
       console.error("Error fetching user profile:", profileError);
       throw createError({
         statusCode: 500,
@@ -28,7 +29,9 @@ export default defineCachedEventHandler(
       });
     }
 
-    return { plan_type: userProfile.plan_type || "free" };
+    return {
+      plan_type: convertPriceIdToPlanType(subscription.stripe_price_id),
+    };
   },
   {
     maxAge: 60 * 60 * 24,

@@ -1,270 +1,577 @@
-import { serverSupabaseServiceRole } from "#supabase/server";
-import Stripe from "stripe";
 import { useServerStripe } from "#stripe/server";
-import { getRequestHeader, readRawBody, createError } from "h3";
-import { useRuntimeConfig } from "#imports";
+import { serverSupabaseServiceRole } from "#supabase/server";
+import type { H3Event } from "h3";
+import type { Stripe } from "stripe";
+import { Database, TablesInsert } from "~/supabase/supabase";
 
-// --- Types ---
-type WebhookHandler = (data: any, serviceRole: any) => Promise<void>;
+// SECTION 1: TYPES
+// -----------------------------------------------------------------------------
+type SupabaseClientAdmin = ReturnType<
+  typeof serverSupabaseServiceRole<Database>
+>;
+type StripeSubscription = Stripe.Subscription;
+type StripeCheckoutSession = Stripe.Checkout.Session;
+type StripeCustomer = Stripe.Customer;
+type StripeInvoice = Stripe.Invoice & { subscription?: string };
 
-// --- Event Handlers ---
-const handleCheckoutCompleted: WebhookHandler = async (
-  session,
-  serviceRole
-) => {
-  console.log("[webhook] checkout.session.completed received:", {
-    id: session.id,
-    customer: session.customer,
-    metadata: session.metadata,
-    subscription: session.subscription,
-    mode: session.mode,
-    status: session.status,
-  });
+interface RelevantTimestamps {
+  readonly currentPeriodStart: number | null;
+  readonly currentPeriodEnd: number | null;
+  readonly canceledAt: number | null;
+  readonly endedAt: number | null;
+  readonly trialStart: number | null;
+  readonly trialEnd: number | null;
+}
 
-  const userId = session.metadata?.supabase_user_id;
-  const planId = session.metadata?.plan_id;
-  const customerId = session.customer as string;
-  const subscriptionId = session.subscription as string;
-  const status = session.status === "complete" ? "active" : "trialing";
-  if (!userId || !planId) {
-    console.error("Missing metadata in checkout session:", session.id);
-    throw new Error("Missing required metadata");
+// SECTION 2: PURE HELPER FUNCTIONS (Data Extraction, Transformation)
+// -----------------------------------------------------------------------------
+
+function getStripeCustomerID(
+  subOrCustomer: StripeSubscription | StripeCustomer | string | null
+): string | null {
+  if (!subOrCustomer) return null;
+  if (typeof subOrCustomer === "string") return subOrCustomer;
+  if ("customer" in subOrCustomer && subOrCustomer.customer) {
+    const customer = subOrCustomer.customer;
+    return typeof customer === "string" ? customer : customer.id;
   }
-  // Idempotent upsert
-  const { error } = await serviceRole.from("profiles").upsert({
-    id: userId,
-    plan_type: planId,
-    subscription_status: status,
-    stripe_customer_id: customerId,
-    stripe_subscription_id: subscriptionId,
-    updated_at: new Date().toISOString(),
-  });
+  if ("id" in subOrCustomer) {
+    return subOrCustomer.id;
+  }
+  return null;
+}
 
-  console.log("[webhook] Upserting profile with:", {
-    id: userId,
-    plan_type: planId,
-    stripe_customer_id: customerId,
-    stripe_subscription_id: subscriptionId,
-    subscription_status: status,
-  });
+function getSupabaseUserIDFromMetadata(sub: StripeSubscription): string | null {
+  if (sub.metadata?.supabase_user_id) {
+    return sub.metadata.supabase_user_id;
+  }
+  if (
+    typeof sub.customer === "object" &&
+    sub.customer !== null && // Ensure customer is not null
+    (sub.customer as StripeCustomer).metadata?.supabase_user_id
+  ) {
+    return (sub.customer as StripeCustomer).metadata.supabase_user_id;
+  }
+  return null;
+}
+
+function getStripePriceIDFromSubscription(
+  sub: StripeSubscription
+): string | null {
+  return sub.items.data[0]?.price.id ?? null;
+}
+
+function getRelevantTimestamps(sub: StripeSubscription): RelevantTimestamps {
+  // Prioritize from subscription item as previously determined and validated
+  const itemPeriodStart = sub.items.data[0]?.current_period_start ?? null;
+  const itemPeriodEnd = sub.items.data[0]?.current_period_end ?? null;
+
+  // Fallback to direct properties if not on item or not numbers (Stripe types can be complex)
+  // This casting was present in the previously working version and handles cases where
+  // the direct properties might exist on the object Stripe sends, even if not strictly typed at the top level.
+  const currentPeriodStart =
+    typeof itemPeriodStart === "number"
+      ? itemPeriodStart
+      : (((sub as any).current_period_start ?? null) as number | null);
+  const currentPeriodEnd =
+    typeof itemPeriodEnd === "number"
+      ? itemPeriodEnd
+      : (((sub as any).current_period_end ?? null) as number | null);
+
+  return {
+    currentPeriodStart,
+    currentPeriodEnd,
+    canceledAt: sub.canceled_at,
+    endedAt: sub.ended_at,
+    trialStart: sub.trial_start,
+    trialEnd: sub.trial_end,
+  };
+}
+
+function convertUnixToISO(
+  timestamp: number | null
+  // fieldName: string, // No longer needed for logging
+  // subId: string // No longer needed for logging
+): string | null {
+  if (timestamp === null || typeof timestamp === "undefined") return null;
+  // No warning for invalid type, rely on TypeScript for type safety.
+  // If an invalid type somehow gets here, it will likely cause a runtime error,
+  // which should be caught by a higher-level error handler.
+  return new Date(timestamp * 1000).toISOString();
+}
+
+function buildSubscriptionUpsertPayload(
+  supabaseUserId: string,
+  stripePriceId: string,
+  sub: StripeSubscription,
+  timestamps: RelevantTimestamps
+): TablesInsert<"subscriptions"> {
+  const subId = sub.id;
+  const stripeCustomerId = getStripeCustomerID(sub);
+
+  if (!stripeCustomerId) {
+    // This error is critical for payload construction.
+    throw new Error(
+      `Failed to extract Stripe Customer ID for subscription ${subId}`
+    );
+  }
+
+  return {
+    stripe_subscription_id: subId,
+    user_id: supabaseUserId,
+    stripe_price_id: stripePriceId,
+    stripe_customer_id: stripeCustomerId,
+    status: sub.status,
+    current_period_start: convertUnixToISO(timestamps.currentPeriodStart),
+    current_period_end: convertUnixToISO(timestamps.currentPeriodEnd),
+    cancel_at_period_end: sub.cancel_at_period_end,
+    canceled_at: convertUnixToISO(timestamps.canceledAt),
+    ended_at: convertUnixToISO(timestamps.endedAt),
+    trial_start: convertUnixToISO(timestamps.trialStart),
+    trial_end: convertUnixToISO(timestamps.trialEnd),
+    metadata: sub.metadata,
+  };
+}
+
+// SECTION 3: DATABASE INTERACTION FUNCTIONS
+// -----------------------------------------------------------------------------
+
+async function findSupabaseUserByStripeCustomerId(
+  supabase: SupabaseClientAdmin,
+  stripeCustomerId: string
+  // subIdForLog: string // No longer needed for logging
+): Promise<string | null> {
+  const { data: profile, error } = await supabase
+    .from("profiles")
+    .select("id")
+    .eq("stripe_customer_id", stripeCustomerId)
+    .single();
+
+  if (error || !profile) {
+    // It's important for the caller to know this failed.
+    if (error && error.code !== "PGRST116") {
+      // PGRST116: 'Searched for a single row, but found no rows'
+      // Log only unexpected errors if absolutely necessary, or let global handler do it.
+      // For now, we assume the caller will handle/log.
+    }
+    return null;
+  }
+  return profile.id;
+}
+
+async function upsertSupabaseSubscription(
+  supabase: SupabaseClientAdmin,
+  payload: TablesInsert<"subscriptions">
+): Promise<{ success: boolean; error?: any }> {
+  const { error } = await supabase
+    .from("subscriptions")
+    .upsert(payload, { onConflict: "stripe_subscription_id" });
 
   if (error) {
-    console.error("Error updating user profile:", error);
-    throw error;
+    // Return error to be handled by caller
+    return { success: false, error };
   }
-  console.log(`Successfully upgraded user ${userId} to ${planId} plan`);
-};
+  return { success: true };
+}
 
-const handleSubscriptionCreated: WebhookHandler = async (
-  subscription,
-  serviceRole
-) => {
-  const customerId = subscription.customer as string;
-  const planId = subscription.items.data[0]?.price?.id ?? null;
-  const status = subscription.status;
-  const { data: profile, error: fetchError } = await serviceRole
-    .from("profiles")
-    .select("id")
-    .eq("stripe_customer_id", customerId)
-    .single();
-  if (fetchError || !profile) {
-    console.warn(`No profile found for customer ${customerId}`, { fetchError });
-    return;
+async function updateSubscriptionStatusInDb( // Renamed for clarity
+  supabase: SupabaseClientAdmin,
+  stripeSubscriptionId: string,
+  status: StripeSubscription["status"]
+): Promise<{ success: boolean; error?: any }> {
+  const { error } = await supabase
+    .from("subscriptions")
+    .update({ status })
+    .eq("stripe_subscription_id", stripeSubscriptionId);
+  if (error) {
+    return { success: false, error };
   }
-  const { error: updateError } = await serviceRole
-    .from("profiles")
-    .update({
-      plan_type: planId,
-      subscription_status: status,
-      stripe_subscription_id: subscription.id,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", profile.id);
-  if (updateError) {
-    console.error("Error updating subscription (created):", updateError);
-    throw updateError;
-  }
-  console.log(`Created subscription for user ${profile.id}: ${status}`);
-};
+  return { success: true };
+}
 
-const handleSubscriptionUpdated: WebhookHandler = async (
-  subscription,
-  serviceRole
-) => {
-  const customerId = subscription.customer as string;
-  const status = subscription.status;
-  const planId = subscription.items.data[0]?.price?.id ?? null;
-  const { data: profile, error: fetchError } = await serviceRole
-    .from("profiles")
-    .select("id")
-    .eq("stripe_customer_id", customerId)
-    .single();
-  if (fetchError || !profile) {
-    console.warn(`No profile found for customer ${customerId}`, { fetchError });
-    return;
-  }
-  const isActive = ["active", "trialing"].includes(status);
-  const { error: updateError } = await serviceRole
-    .from("profiles")
-    .update({
-      subscription_status: status,
-      stripe_subscription_id: subscription.id,
-      ...(isActive ? { plan_type: planId } : { plan_type: "free" }),
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", profile.id);
-  if (updateError) {
-    console.error("Error updating subscription (updated):", updateError);
-    throw updateError;
-  }
-  console.log(`Updated subscription for user ${profile.id}: ${status}`);
-};
+// SECTION 4: CORE STRIPE DATA PROCESSING LOGIC
+// -----------------------------------------------------------------------------
 
-const handleSubscriptionDeleted: WebhookHandler = async (
-  subscription,
-  serviceRole
-) => {
-  const customerId = subscription.customer as string;
-  const { data: profile, error: fetchError } = await serviceRole
-    .from("profiles")
-    .select("id")
-    .eq("stripe_customer_id", customerId)
-    .single();
-  if (fetchError || !profile) {
-    console.warn(`No profile found for customer ${customerId}`, { fetchError });
-    return;
-  }
-  const { error: updateError } = await serviceRole
-    .from("profiles")
-    .update({
-      plan_type: "free",
-      subscription_status: "canceled",
-      stripe_subscription_id: null,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", profile.id);
-  if (updateError) {
-    console.error("Error downgrading to free plan:", updateError);
-  }
-  console.log(`Downgraded user ${profile.id} to free plan`);
-};
+async function resolveSupabaseUserId(
+  sub: StripeSubscription,
+  supabase: SupabaseClientAdmin
+): Promise<string | null> {
+  let supabaseUserId = getSupabaseUserIDFromMetadata(sub);
 
-const handleInvoicePaymentSucceeded: WebhookHandler = async (
-  invoice,
-  serviceRole
-) => {
-  const customerId = invoice.customer as string;
-  const { data: profile, error: fetchError } = await serviceRole
-    .from("profiles")
-    .select("id")
-    .eq("stripe_customer_id", customerId)
-    .single();
-  if (fetchError || !profile) {
-    console.warn(`No profile found for customer ${customerId}`, { fetchError });
-    return;
-  }
-  // Optionally update renewal date, payment status, etc.
-  const { error: updateError } = await serviceRole
-    .from("profiles")
-    .update({
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", profile.id);
-  if (updateError) {
-    console.error("Error updating after payment succeeded:", updateError);
-  }
-  console.log(`Payment succeeded for user ${profile.id}`);
-};
-
-const handleInvoicePaymentFailed: WebhookHandler = async (
-  invoice,
-  serviceRole
-) => {
-  const customerId = invoice.customer as string;
-  const { data: profile, error: fetchError } = await serviceRole
-    .from("profiles")
-    .select("id")
-    .eq("stripe_customer_id", customerId)
-    .single();
-  if (fetchError || !profile) {
-    console.warn(`No profile found for customer ${customerId}`, { fetchError });
-    return;
-  }
-  // Optionally update status, send alert, etc.
-  const { error: updateError } = await serviceRole
-    .from("profiles")
-    .update({
-      subscription_status: "past_due",
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", profile.id);
-  if (updateError) {
-    console.error("Error updating after payment failed:", updateError);
-  }
-  console.log(`Payment failed for user ${profile.id}`);
-};
-
-// --- Main Webhook Handler ---
-export default defineEventHandler(async (event) => {
-  const config = useRuntimeConfig();
-  const stripe = await useServerStripe(event);
-  const serviceRole = serverSupabaseServiceRole(event);
-  const sig = getRequestHeader(event, "stripe-signature");
-  const secret = config.stripeWebhookSecret;
-  if (!sig || !secret) {
-    throw createError({
-      statusCode: 400,
-      statusMessage: "Missing Stripe signature or webhook secret",
-    });
-  }
-  let stripeEvent: Stripe.Event;
-  try {
-    const rawBody = await readRawBody(event);
-    if (!rawBody) {
-      throw createError({
-        statusCode: 400,
-        statusMessage: "Missing request body",
-      });
+  if (!supabaseUserId) {
+    const stripeCustomerId = getStripeCustomerID(sub);
+    if (stripeCustomerId) {
+      supabaseUserId = await findSupabaseUserByStripeCustomerId(
+        supabase,
+        stripeCustomerId
+      );
+    } else {
+      // This is an issue, but logging is deferred to the main handler.
+      // Throwing an error or returning a specific result might be better.
+      // For now, returning null and letting syncSubscriptionDataCore handle it.
+      return null;
     }
-    stripeEvent = stripe.webhooks.constructEvent(rawBody, sig, secret);
-  } catch (err: any) {
-    console.error("Webhook signature verification failed:", err.message);
-    throw createError({
-      statusCode: 400,
-      statusMessage: `Webhook Error: ${err.message}`,
-    });
   }
-  // Event routing
+
+  if (!supabaseUserId) {
+    return null;
+  }
+  return supabaseUserId;
+}
+
+async function syncSubscriptionDataCore(
+  supabase: SupabaseClientAdmin,
+  sub: StripeSubscription,
+  stripeInstance: Stripe // Pass Stripe instance for potential logging context if re-enabled
+): Promise<{ success: boolean; error?: string | object }> {
+  const subId = sub.id;
+  // console.log with full object removed
+
+  const supabaseUserId = await resolveSupabaseUserId(sub, supabase);
+  if (!supabaseUserId) {
+    // This is a critical failure point for syncing this subscription.
+    return {
+      success: false,
+      error: `Supabase User ID could not be resolved for Stripe subscription ${subId}.`,
+    };
+  }
+
+  const stripePriceId = getStripePriceIDFromSubscription(sub);
+  if (!stripePriceId) {
+    return {
+      success: false,
+      error: `Stripe Price ID not found on subscription ${subId}.`,
+    };
+  }
+
+  const timestamps = getRelevantTimestamps(sub);
+
+  if (
+    ["active", "trialing", "past_due"].includes(sub.status) &&
+    (typeof timestamps.currentPeriodStart !== "number" ||
+      typeof timestamps.currentPeriodEnd !== "number")
+  ) {
+    const errorDetail = `Subscription ${subId} (status: ${sub.status}) has invalid/missing current_period_start/end. Start: ${timestamps.currentPeriodStart}, End: ${timestamps.currentPeriodEnd}.`;
+    return { success: false, error: errorDetail };
+  }
+
+  try {
+    const payload = buildSubscriptionUpsertPayload(
+      supabaseUserId,
+      stripePriceId,
+      sub,
+      timestamps
+    );
+    const upsertResult = await upsertSupabaseSubscription(supabase, payload);
+    if (!upsertResult.success) {
+      return {
+        success: false,
+        error: upsertResult.error || `Failed to upsert subscription ${subId}.`,
+      };
+    }
+    return { success: true };
+  } catch (error: any) {
+    return {
+      success: false,
+      error: `Error building subscription payload for ${subId}: ${error.message}`,
+    };
+  }
+}
+
+// SECTION 5: STRIPE EVENT HANDLERS
+// -----------------------------------------------------------------------------
+// Helper to reduce repetition in event handlers
+async function retrieveAndSyncSubscription(
+  subscriptionId: string,
+  stripe: Stripe,
+  supabase: SupabaseClientAdmin,
+  eventName: string // For context if errors occur
+): Promise<{ success: boolean; error?: string | object }> {
+  try {
+    const fullSubscription = await stripe.subscriptions.retrieve(
+      subscriptionId,
+      {
+        expand: ["items.data.price.product", "customer"],
+      }
+    );
+    return await syncSubscriptionDataCore(supabase, fullSubscription, stripe);
+  } catch (retrieveError: any) {
+    return {
+      success: false,
+      error: `Error retrieving full subscription ${subscriptionId} for event ${eventName}: ${retrieveError.message}`,
+    };
+  }
+}
+
+async function handleSubscriptionLifecycleEvent(
+  eventData: Stripe.Event.Data,
+  stripe: Stripe,
+  supabase: SupabaseClientAdmin,
+  eventType: string
+): Promise<{ success: boolean; error?: string | object }> {
+  const eventSubscription = eventData.object as StripeSubscription;
+  // console.log for event and sub ID removed
+
+  const syncResult = await retrieveAndSyncSubscription(
+    eventSubscription.id,
+    stripe,
+    supabase,
+    eventType
+  );
+
+  if (!syncResult.success) {
+    if (
+      eventType === "customer.subscription.deleted" &&
+      (syncResult.error as any)?.message?.includes("No such subscription")
+    ) {
+      // Attempt sync with event data as a fallback ONLY if retrieve failed for a deleted event
+      return await syncSubscriptionDataCore(
+        supabase,
+        eventSubscription,
+        stripe
+      );
+    }
+    return syncResult;
+  }
+  return syncResult;
+}
+
+async function handleCheckoutSessionCompleted(
+  session: StripeCheckoutSession,
+  stripe: Stripe,
+  supabase: SupabaseClientAdmin
+): Promise<{ success: boolean; error?: string | object } | void> {
+  if (
+    session.mode === "subscription" &&
+    session.subscription &&
+    session.customer
+  ) {
+    return await retrieveAndSyncSubscription(
+      session.subscription as string,
+      stripe,
+      supabase,
+      "checkout.session.completed"
+    );
+  } else {
+    // Not an error, just not a relevant event for subscription sync
+    return {
+      success: true,
+      error: "Not a subscription checkout session or missing data.",
+    };
+  }
+}
+
+async function handleInvoicePaymentSucceeded(
+  invoice: StripeInvoice,
+  stripe: Stripe,
+  supabase: SupabaseClientAdmin
+): Promise<{ success: boolean; error?: string | object } | void> {
+  if (invoice.subscription) {
+    return await retrieveAndSyncSubscription(
+      invoice.subscription,
+      stripe,
+      supabase,
+      "invoice.payment_succeeded"
+    );
+  } else {
+    return { success: true, error: "Invoice paid but no subscription linked." }; // Or return void
+  }
+}
+
+async function handleInvoicePaymentFailed(
+  invoice: StripeInvoice,
+  supabase: SupabaseClientAdmin
+): Promise<{ success: boolean; error?: string | object } | void> {
+  if (invoice.subscription) {
+    const updateResult = await updateSubscriptionStatusInDb(
+      supabase,
+      invoice.subscription as string,
+      "past_due"
+    );
+    if (!updateResult.success) {
+      return {
+        success: false,
+        error:
+          updateResult.error ||
+          `Failed to mark subscription ${invoice.subscription} as past_due.`,
+      };
+    }
+    return { success: true };
+  } else {
+    return {
+      success: true,
+      error: "Invoice payment failed but no subscription linked.",
+    };
+  }
+}
+
+// SECTION 6: MAIN WEBHOOK DISPATCHER & ENTRYPOINT
+// -----------------------------------------------------------------------------
+
+async function processStripeEvent(
+  stripeEvent: Stripe.Event,
+  stripe: Stripe,
+  supabase: SupabaseClientAdmin
+): Promise<{
+  processed: boolean;
+  success?: boolean;
+  error?: string | object;
+  eventType?: string;
+}> {
   const { type, data } = stripeEvent;
+  let result: { success: boolean; error?: string | object } | void;
+
+  switch (type) {
+    case "customer.subscription.created":
+    case "customer.subscription.updated":
+    case "customer.subscription.deleted":
+    case "customer.subscription.resumed":
+      result = await handleSubscriptionLifecycleEvent(
+        data,
+        stripe,
+        supabase,
+        type
+      );
+      break;
+    case "checkout.session.completed":
+      result = await handleCheckoutSessionCompleted(
+        data.object as StripeCheckoutSession,
+        stripe,
+        supabase
+      );
+      break;
+    case "invoice.payment_succeeded":
+      result = await handleInvoicePaymentSucceeded(
+        data.object as StripeInvoice,
+        stripe,
+        supabase
+      );
+      break;
+    case "invoice.payment_failed":
+      result = await handleInvoicePaymentFailed(
+        data.object as StripeInvoice,
+        supabase
+      );
+      break;
+    default:
+      // This is not an error for Stripe, but good for us to know.
+      // We can log this specifically in the main handler if desired.
+      return {
+        processed: true,
+        success: true,
+        error: `Unhandled event type: ${type}`,
+        eventType: type,
+      };
+  }
+
+  if (result && !result.success) {
+    return {
+      processed: true,
+      success: false,
+      error: result.error,
+      eventType: type,
+    };
+  }
+  return { processed: true, success: true, eventType: type };
+}
+
+async function verifyStripeWebhookSignature(
+  event: H3Event,
+  stripeClient: Stripe,
+  secret: string
+): Promise<Stripe.Event | null> {
+  const signature = getHeader(event, "stripe-signature");
+  if (!signature) {
+    return null;
+  }
+
+  const rawBody = await readRawBody(event);
+  if (!rawBody) {
+    return null;
+  }
+
   try {
-    switch (type) {
-      case "checkout.session.completed":
-        await handleCheckoutCompleted(data.object, serviceRole);
-        break;
-      case "customer.subscription.created":
-        await handleSubscriptionCreated(data.object, serviceRole);
-        break;
-      case "customer.subscription.updated":
-        await handleSubscriptionUpdated(data.object, serviceRole);
-        break;
-      case "customer.subscription.deleted":
-        await handleSubscriptionDeleted(data.object, serviceRole);
-        break;
-      case "invoice.payment_succeeded":
-        await handleInvoicePaymentSucceeded(data.object, serviceRole);
-        break;
-      case "invoice.payment_failed":
-        await handleInvoicePaymentFailed(data.object, serviceRole);
-        break;
-      default:
-        console.log(`Ignoring irrelevant event: ${type}`);
-    }
+    return stripeClient.webhooks.constructEvent(rawBody, signature, secret);
   } catch (err: any) {
-    console.error(`Error handling event ${type}:`, err);
+    return null;
+  }
+}
+
+export default defineEventHandler(async (event: H3Event) => {
+  const stripeClient = await useServerStripe(event);
+  const supabaseClientAdmin = serverSupabaseServiceRole<Database>(event);
+  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+
+  if (!webhookSecret) {
+    console.error(
+      "[Webhook] CRITICAL: Stripe webhook secret is not configured."
+    ); // Keep critical config error
     throw createError({
       statusCode: 500,
-      statusMessage: `Webhook handler error: ${err.message}`,
+      message: "Webhook secret not configured.",
     });
   }
-  return { received: true };
+
+  const stripeEvent = await verifyStripeWebhookSignature(
+    event,
+    stripeClient,
+    webhookSecret
+  );
+  if (!stripeEvent) {
+    // Log the verification failure before throwing, as this is a security concern.
+    console.error(
+      "[Webhook] Stripe webhook signature verification failed. Raw body might have been tampered or secret is wrong."
+    );
+    throw createError({
+      statusCode: 400,
+      message: "Webhook signature verification failed.",
+    });
+  }
+
+  try {
+    const processingResult = await processStripeEvent(
+      stripeEvent,
+      stripeClient,
+      supabaseClientAdmin
+    );
+
+    if (!processingResult.success) {
+      // Log significant processing errors here, as Stripe got the event but we failed to process.
+      console.error(
+        `[Webhook] Error processing Stripe event ${stripeEvent.id} (Type: ${stripeEvent.type}):`,
+        processingResult.error || "Unknown processing error."
+      );
+    } else if (
+      processingResult.error &&
+      processingResult.error.toString().startsWith("Unhandled event type")
+    ) {
+      // Log unhandled event types for monitoring, but not as an error.
+      console.log(
+        `[Webhook] Info: ${processingResult.error} (Event ID: ${stripeEvent.id})`
+      );
+    }
+    // Always return 200 to Stripe if signature was verified, to acknowledge receipt.
+    // The success/error in the body is for our own logging/debugging.
+    return {
+      received: true,
+      eventId: stripeEvent.id,
+      eventType: stripeEvent.type,
+      processedOk: processingResult.success,
+      details: processingResult.error, // This could be a string or an object
+    };
+  } catch (error: any) {
+    // This catch is for truly unexpected errors within processStripeEvent or its callees
+    // that weren't caught and returned as a processingResult.
+    console.error(
+      `[Webhook] UNHANDLED EXCEPTION while processing Stripe event ${stripeEvent.id} (Type: ${stripeEvent.type}):`,
+      error
+    );
+    return {
+      received: true,
+      eventId: stripeEvent.id,
+      eventType: stripeEvent.type,
+      processedOk: false,
+      details: "Critical internal server error during event processing.",
+    };
+  }
 });

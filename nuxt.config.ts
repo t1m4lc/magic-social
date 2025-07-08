@@ -79,6 +79,8 @@ export default defineNuxtConfig({
     stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET,
     // Public keys (exposed to client-side)
     public: {
+      stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET,
+      stripeProPriceId: process.env.STRIPE_PRO_PRICE_ID,
       // Add public runtime config here if needed
     },
   },
