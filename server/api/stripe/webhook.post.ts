@@ -211,16 +211,6 @@ export default defineEventHandler(async (event) => {
       return send(event, 500, `Database error: ${upsertError.message}`);
     }
 
-    // Invalidate user-subscription-cache for this user
-    const storage = useStorage();
-    const cacheKey = `user-subscription-cache/${userId}`;
-    try {
-      await storage.removeItem(cacheKey);
-      console.log(`[webhook] Invalidated cache: ${cacheKey}`);
-    } catch (err) {
-      console.error(`[webhook] Failed to invalidate cache: ${cacheKey}`, err);
-    }
-
     console.log(
       `[webhook] Successfully processed event: ${stripeEvent.type}, subscription: ${subscription.id} for user: ${userId} with status: ${subscription.status}`
     );

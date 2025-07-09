@@ -1,7 +1,6 @@
 // server/api/user/current-subscription.get.ts
 import { serverSupabaseClient, serverSupabaseUser } from "#supabase/server";
 import { createError } from "h3";
-import { defineCachedFunction } from "#imports";
 import { Database } from "~/supabase/supabase";
 import { getPlanTypeWithPriceId } from "~/shared/price.util";
 
@@ -16,33 +15,21 @@ export default defineEventHandler(async (event) => {
   }
 
   const userId = user.id;
+  const client = await serverSupabaseClient<Database>(event);
 
-  const getUserSubscription = defineCachedFunction(
-    async () => {
-      const client = await serverSupabaseClient<Database>(event);
+  const { data, error } = await client
+    .from("subscriptions")
+    .select("stripe_price_id")
+    .eq("user_id", userId)
+    .in("status", ["active", "trialing"])
+    .order("current_period_end", { ascending: false })
+    .limit(1);
 
-      const { data, error } = await client
-        .from("subscriptions")
-        .select("stripe_price_id")
-        .eq("user_id", userId)
-        .in("status", ["active", "trialing"])
-        .order("current_period_end", { ascending: false })
-        .limit(1);
+  if (error) {
+    throw createError({ statusCode: 500, message: error.message });
+  }
 
-      if (error) {
-        throw createError({ statusCode: 500, message: error.message });
-      }
-
-      return data?.[0]?.stripe_price_id ?? null;
-    },
-    {
-      name: "user-subscription-cache",
-      maxAge: 60 * 60,
-      getKey: () => `user-subscription-cache/${userId}`,
-    }
-  );
-
-  const stripePriceId = await getUserSubscription();
+  const stripePriceId = data?.[0]?.stripe_price_id ?? null;
   const planType = getPlanTypeWithPriceId(stripePriceId);
 
   return { stripePriceId, planType };
