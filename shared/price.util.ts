@@ -8,9 +8,10 @@ const planMap: Record<priceId, planType> = {
   price_1Riak1LuCK4UmVgSstfwkQzG: "pro", // TEST
 };
 
+// TODO manage this with settings table server side
 export const dailyLimitMap: Record<planType, limit> = {
   free: 5,
-  pro: 5,
+  pro: 120,
   ultimate: 1500,
 };
 

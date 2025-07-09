@@ -30,6 +30,8 @@ const toSubscriptionModel = (
     // You might want to throw an error or handle this more robustly if it's critical.
   }
 
+  console.log("subscription__________", subscription);
+
   return {
     user_id: supabaseUserId, // Map the Stripe metadata key to your DB column name
     stripe_subscription_id: subscription.id,
