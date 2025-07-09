@@ -1,6 +1,7 @@
 import type { OpenAIRequest, OpenAIResponse } from "~/types/openai";
 import { serverSupabaseUser, serverSupabaseClient } from "#supabase/server";
 import { Database } from "~/supabase/supabase";
+import { getDailyLimitWithPriceId } from "~/shared/price.util";
 
 interface UserPlan {
   plan_type: string;
@@ -36,23 +37,6 @@ export default defineEventHandler(async (event): Promise<ResponseData> => {
 
   const supabase = await serverSupabaseClient<Database>(event);
 
-  // Fetch user plan from cached endpoint
-  const { plan_type } = await $fetch<UserPlan>("/api/user/plan", {
-    headers: event.headers,
-  });
-
-  // Fetch rate limits from cached endpoint
-  const rateLimitSettings = await $fetch<RateLimitSettings>(
-    `/api/settings/rate-limit?plan_type=${plan_type}`
-  );
-
-  if (!rateLimitSettings) {
-    throw createError({
-      statusCode: 500,
-      statusMessage: "Could not retrieve rate limits",
-    });
-  }
-
   const twentyFourHoursAgo = new Date(
     new Date().getTime() - 24 * 60 * 60 * 1000
   ).toISOString();
@@ -78,7 +62,14 @@ export default defineEventHandler(async (event): Promise<ResponseData> => {
     });
   }
 
-  if (count >= rateLimitSettings.daily_limit) {
+  const { stripePriceId } = await $fetch("/api/user/current-subscription", {
+    method: "GET",
+    headers: event.headers, // important: forward auth cookies
+  });
+
+  const daily_limit = getDailyLimitWithPriceId(stripePriceId);
+
+  if (count >= daily_limit) {
     throw createError({
       statusCode: 429,
       statusMessage:

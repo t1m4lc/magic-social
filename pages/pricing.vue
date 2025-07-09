@@ -5,7 +5,7 @@ import { Button } from '~/components/ui/button'
 import { Check, X, DollarSign, Shield, Lock } from 'lucide-vue-next'
 import AuthModal from '~/components/AuthModal.vue'
 import GoogleSignInButton from '~/components/GoogleSignInButton.vue'
-import { convertPriceIdToPlanType } from '~/shared/price.util'
+import { dailyLimitMap, getPlanTypeWithPriceId } from '~/shared/price.util'
 
 
 // Utility to always provide a valid origin with scheme
@@ -40,7 +40,7 @@ const handleSubscribe = async (priceId: string): Promise<void> => {
       method: 'POST',
       body: {
         priceId: priceId,
-        successUrl: `${origin}/dashboard?success=true&plan=${convertPriceIdToPlanType(priceId)}`,
+        successUrl: `${origin}/dashboard?success=true&plan=${getPlanTypeWithPriceId(priceId)}`,
         cancelUrl: `${origin}/pricing?canceled=true`
       }
     })
@@ -108,7 +108,7 @@ const plans: Plan[] = [
     available: true,
     availableFeatures: [
       'Everything in Pro',
-      '1500 OpenAI requests per 24 hours',
+      `${dailyLimitMap['ultimate']} OpenAI requests per 24h`,
       'Automation',
       'Schedule posts',
       'Auto-like feature',
@@ -130,7 +130,7 @@ const plans: Plan[] = [
     available: true,
     availableFeatures: [
       'Everything in Free',
-      '150 OpenAI requests per 24 hours',
+      `${dailyLimitMap['pro']} OpenAI requests per 24h`,
       'Custom format instructions',
       'Save & reuse custom prompts',
     ],
@@ -153,7 +153,7 @@ const plans: Plan[] = [
     popular: false,
     available: true,
     availableFeatures: [
-      '5 requests/day (for testing)',
+      `${dailyLimitMap['free']} OpenAI requests/24h (for testing)`,
       'Custom tone',
     ],
     unavailableFeatures: [
@@ -184,8 +184,7 @@ const handleCardClick = (priceId: string | null) => {
     showAuthModal.value = true
     return
   }
-  const planType = convertPriceIdToPlanType(priceId)
-  console.log(planType, priceId);
+  const planType = getPlanTypeWithPriceId(priceId)
 
   if (planType === 'pro') handleSubscribe(priceId)
   else if (planType === 'free') navigateTo(`/dashboard?success=true&plan=${planType}`)
