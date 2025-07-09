@@ -2,6 +2,7 @@ import type { OpenAIRequest, OpenAIResponse } from "~/types/openai";
 import { serverSupabaseUser, serverSupabaseClient } from "#supabase/server";
 import { Database } from "~/supabase/supabase";
 import { getDailyLimitWithPriceId } from "~/shared/price.util";
+import dayjs from "dayjs";
 
 interface RequestBody {
   context: string;
@@ -29,23 +30,10 @@ export default defineEventHandler(async (event): Promise<ResponseData> => {
 
   const supabase = await serverSupabaseClient<Database>(event);
 
-  const twentyFourHoursAgo = new Date(
-    new Date().getTime() - 24 * 60 * 60 * 1000
-  ).toISOString();
-
-  const { count, error: usageError } = await supabase
-    .from("openai_usage")
-    .select("*", { count: "exact", head: true })
-    .eq("user_id", user.id)
-    .gte("created_at", twentyFourHoursAgo);
-
-  if (usageError) {
-    console.error("Error fetching usage data:", usageError);
-    throw createError({
-      statusCode: 500,
-      statusMessage: "Could not retrieve usage data",
-    });
-  }
+  const { count } = await $fetch<{ count: number }>("/api/ai/usage", {
+    method: "GET",
+    headers: event.headers, // forward auth cookies for user context
+  });
 
   if (typeof count !== "number") {
     throw createError({

@@ -33,6 +33,29 @@
         </CardHeader>
       </Card>
 
+            <!-- AI Usage Section -->
+      <Card>
+        <CardHeader>
+          <CardTitle class="text-2xl font-semibold text-gray-900 dark:text-white">AI Usage</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div v-if="usagePending" class="py-4 text-center">
+            <LoadingSpinner class="w-6 h-6 mx-auto mb-2" />
+            <span class="text-gray-600 dark:text-gray-400">Loading usage...</span>
+          </div>
+          <div v-else-if="usageError" class="py-4 text-center text-red-600 dark:text-red-400">
+            {{ usageError }}
+          </div>
+          <div v-else class="flex flex-col items-center justify-center gap-2">
+            <span class="text-4xl font-bold bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 bg-clip-text text-transparent select-none">
+              {{ usageCount }}
+            </span>
+            <span class="text-sm text-gray-600 dark:text-gray-400">AI generations in the last 24 hours</span>
+            <span v-if="planType" class="text-xs text-gray-500 dark:text-gray-400 mt-1">Daily limit: {{ dailyLimitMap[planType] }} generations</span>
+          </div>
+        </CardContent>
+      </Card>
+
       <!-- Plan Section -->
       <Card>
         <CardHeader>
@@ -163,6 +186,8 @@
           </div>
         </CardContent>
       </Card>
+
+
     </div>
   </div>
 </template>
@@ -172,6 +197,7 @@ import { Button } from '~/components/ui/button'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '~/components/ui/card'
 import type { planType } from '~/shared/price.util'
 import type { Database } from '~/supabase/supabase'
+import { dailyLimitMap } from '~/shared/price.util'
 
 
 useHead({
@@ -281,4 +307,21 @@ const manageSubscription = async (): Promise<void> => {
     isManagingSubscription.value = false
   }
 }
+
+// AI usage state
+const usageCount = ref(0)
+const usagePending = ref(true)
+const usageError = ref<string | null>(null)
+
+// Fetch AI usage data
+const { data: usageData, pending: usageLoading, error: usageFetchError } = await useFetch<{ count: number }>(
+  '/api/ai/usage',
+  { key: 'ai-usage-24h' }
+)
+
+watchEffect(() => {
+  usagePending.value = usageLoading.value
+  usageError.value = usageFetchError.value ? usageFetchError.value.message : null
+  usageCount.value = usageData.value?.count ?? 0
+})
 </script>

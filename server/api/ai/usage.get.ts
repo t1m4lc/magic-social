@@ -17,9 +17,9 @@ export default defineEventHandler(async (event) => {
 
   // Default to last 24 hours
   const fromParam = query.from as string;
-  const toParam = query.to as string;
+  // const toParam = query.to as string;
   const from = fromParam ? dayjs(fromParam) : dayjs().subtract(24, "hours");
-  const to = toParam ? dayjs(toParam) : dayjs();
+  // const to = toParam ? dayjs(toParam) : dayjs();
 
   try {
     // Get usage count for the specified period
@@ -27,8 +27,8 @@ export default defineEventHandler(async (event) => {
       .from("openai_usage")
       .select("*", { count: "exact", head: true })
       .eq("user_id", user.id)
-      .gte("created_at", from.toISOString())
-      .lte("created_at", to.toISOString());
+      .gte("created_at", from.toISOString());
+    // .lte("created_at", to.toISOString());
 
     if (error) {
       throw createError({
@@ -37,7 +37,7 @@ export default defineEventHandler(async (event) => {
       });
     }
 
-    return count || 0;
+    return { count: count || 0 };
   } catch (error: any) {
     console.error("Usage API error:", error);
 
