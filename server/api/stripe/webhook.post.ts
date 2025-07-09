@@ -18,18 +18,29 @@ export default defineEventHandler(async (event) => {
   const sig = event.node.req.headers["stripe-signature"] as string;
   const rawBody = await readRawBody(event);
 
-  let stripeEvent: Stripe.Event;
-  try {
-    console.log("[webhook] rawBody:", rawBody);
-    stripeEvent = stripe.webhooks.constructEvent(
-      rawBody!,
-      sig,
-      config.stripeWebhookSecret
-    );
-    console.log("[webhook] stripeEvent:", stripeEvent.type, stripeEvent.id);
-  } catch (err) {
-    console.error("Webhook signature error:", err);
-    return send(event, 400, "Webhook Error");
+  // Use constructEventAsync for SubtleCryptoProvider compatibility
+  const stripeEvent = await (async () => {
+    try {
+      console.log("[webhook] rawBody:", rawBody);
+      const eventObj = await stripe.webhooks.constructEventAsync(
+        rawBody!,
+        sig,
+        config.stripeWebhookSecret
+      );
+      console.log("[webhook] stripeEvent:", eventObj.type, eventObj.id);
+      return eventObj;
+    } catch (err) {
+      console.error("Webhook signature error:", err);
+      return send(event, 400, "Webhook Error");
+    }
+  })();
+
+  if (
+    !stripeEvent ||
+    typeof stripeEvent !== "object" ||
+    !("type" in stripeEvent)
+  ) {
+    return { error: true, message: "Invalid Stripe event" };
   }
 
   if (stripeEvent.type === "checkout.session.completed") {
