@@ -1,9 +1,16 @@
+// server/api/stripe/webhook.ts
+
 import { defineEventHandler, readRawBody, send } from "h3";
-import { useServerStripe } from "#stripe/server";
+import { useServerStripe } from "#stripe/server"; // Provided by @unlok-co/nuxt-stripe
 import type Stripe from "stripe";
 import { serverSupabaseServiceRole } from "#supabase/server";
-import type { Database, TablesInsert } from "~/supabase/supabase";
+import type { Database, TablesInsert } from "~/supabase/supabase"; // Assuming this path is correct
 
+/**
+ * Transform Stripe.Subscription into DB-ready subscription row.
+ * Uses bracket notation for current_period_start and current_period_end due to Stripe type limitations.
+ * Ensures that 'supabase_user_id' from Stripe metadata is mapped to 'user_id' in your DB model.
+ */
 const toSubscriptionModel = (
   subscription: Stripe.Subscription
 ): TablesInsert<"subscriptions"> => {
@@ -13,13 +20,23 @@ const toSubscriptionModel = (
   const current_period_end = (subscription as any)["current_period_end"] as
     | number
     | undefined;
+
+  // IMPORTANT: Match the key used in your checkout session creation (supabase_user_id)
+  const supabaseUserId = subscription.metadata.supabase_user_id;
+  if (!supabaseUserId) {
+    console.warn(
+      `[webhook] Missing 'supabase_user_id' in metadata for subscription ${subscription.id}`
+    );
+    // You might want to throw an error or handle this more robustly if it's critical.
+  }
+
   return {
-    user_id: subscription.metadata.user_id, // This will now come from the metadata passed during checkout
+    user_id: supabaseUserId, // Map the Stripe metadata key to your DB column name
     stripe_subscription_id: subscription.id,
-    stripe_customer_id: subscription.customer as string,
+    stripe_customer_id: subscription.customer as string, // Ensure this is always a string
     stripe_price_id: subscription.items.data[0]?.price.id,
     status: subscription.status,
-    metadata: subscription.metadata,
+    metadata: subscription.metadata, // Store all metadata for debugging/future use
     cancel_at_period_end: subscription.cancel_at_period_end,
     canceled_at: subscription.canceled_at
       ? new Date(subscription.canceled_at * 1000).toISOString()
@@ -53,91 +70,134 @@ const getSubscriptionFromEvent = async (
       return event.data.object as Stripe.Subscription;
     case "invoice.payment_succeeded": {
       const invoice = event.data.object as Stripe.Invoice & {
-        subscription?: string;
+        subscription?: string; // Stripe invoice object might have this
       };
-      if (!invoice.subscription || typeof invoice.subscription !== "string")
+      if (!invoice.subscription || typeof invoice.subscription !== "string") {
+        console.warn(
+          `[webhook] Invoice ${invoice.id} has no valid subscription ID.`
+        );
         return null;
+      }
       return await stripe.subscriptions.retrieve(invoice.subscription);
     }
     case "checkout.session.completed": {
       const session = event.data.object as Stripe.Checkout.Session;
-      if (session.mode !== "subscription" || !session.subscription) return null;
-
+      if (session.mode !== "subscription" || !session.subscription) {
+        console.warn(
+          `[webhook] Checkout session ${session.id} is not a subscription or has no subscription ID.`
+        );
+        return null;
+      }
       // When checkout.session.completed, the subscription object created by Stripe
       // will inherit metadata from the checkout session.
-      // So, we retrieve the subscription, and its metadata will contain user_id.
-      const subscription = await stripe.subscriptions.retrieve(
+      // So, we retrieve the subscription, and its metadata will contain supabase_user_id.
+      return await stripe.subscriptions.retrieve(
         session.subscription as string
       );
-      return subscription;
     }
+    // Add other event types you care about, e.g., 'customer.created', 'customer.updated' etc.
     default:
+      console.log(`[webhook] Unhandled event type: ${event.type}`);
       return null;
   }
 };
 
 export default defineEventHandler(async (event) => {
-  const config = useRuntimeConfig();
+  const config = useRuntimeConfig(); // Access runtime config, including secrets
   const stripe = await useServerStripe(event);
   const supabaseAdmin = serverSupabaseServiceRole<Database>(event);
 
   const signature = event.node.req.headers["stripe-signature"] as string;
-  const rawBody = await readRawBody(event);
+  const rawBody = await readRawBody(event); // Raw body is required for signature verification
+
+  if (!rawBody) {
+    console.error("[webhook] Raw body is missing for webhook event.");
+    return send(event, 400, "Webhook Error: Missing raw body.");
+  }
+  if (!signature) {
+    console.error("[webhook] Stripe-Signature header is missing.");
+    return send(event, 400, "Webhook Error: Missing Stripe-Signature header.");
+  }
+  if (!config.stripeWebhookSecret) {
+    console.error("[webhook] Stripe webhook secret is not configured.");
+    return send(event, 500, "Server Error: Stripe webhook secret not set.");
+  }
 
   let stripeEvent: Stripe.Event;
   try {
     stripeEvent = await stripe.webhooks.constructEventAsync(
-      rawBody!,
+      rawBody, // Ensure rawBody is passed
       signature,
-      config.stripeWebhookSecret
+      config.stripeWebhookSecret // Your webhook secret from Stripe Dashboard
+    );
+    console.log(
+      `[webhook] Successfully verified Stripe event: ${stripeEvent.type}`
     );
   } catch (error: any) {
     console.error(`[webhook] Error verifying signature: ${error.message}`);
-    return send(event, 400, `Webhook Error: ${error.message}`);
+    // Always return 400 for bad signatures to prevent replay attacks
+    return send(
+      event,
+      400,
+      `Webhook Error: Signature verification failed - ${error.message}`
+    );
   }
 
   try {
     const subscription = await getSubscriptionFromEvent(stripe, stripeEvent);
+
     if (!subscription) {
       console.warn(
-        `[webhook] No subscription found for event: ${stripeEvent.type}`
+        `[webhook] No relevant subscription found for event type: ${stripeEvent.type} (ID: ${stripeEvent.id}). Skipping DB update.`
       );
+      // It's okay to return success if the event type isn't relevant to subscriptions
       return { received: true };
     }
 
-    // Now, subscription.metadata.user_id should reliably contain the Supabase user ID
-    const userId = subscription.metadata?.user_id;
+    // IMPORTANT: Access 'supabase_user_id' as that's what's being set in the Checkout Session API
+    const userId = subscription.metadata?.supabase_user_id;
 
     if (!userId || typeof userId !== "string") {
       console.error(
-        `[webhook] Missing or invalid user_id in subscription metadata for event: ${stripeEvent.type}. Subscription ID: ${subscription.id}`
+        `[webhook] Missing or invalid 'supabase_user_id' in subscription metadata for event: ${stripeEvent.type}. Subscription ID: ${subscription.id}. This is critical for linking to Supabase user.`
       );
-      // This indicates a setup issue where user_id wasn't passed during checkout session creation.
+      // If the user ID is missing, you cannot link the subscription.
+      // This indicates a misconfiguration in how the Checkout Session was created.
       return send(
         event,
         400,
-        "Missing user_id in subscription metadata. Ensure user_id is passed during checkout session creation."
+        "Missing 'supabase_user_id' in subscription metadata. Cannot process."
       );
     }
 
-    // Ensure the metadata passed to toSubscriptionModel includes the user_id
-    // This is generally redundant if user_id is already in metadata, but good for clarity.
     const subscriptionData = toSubscriptionModel(subscription);
 
-    const { error } = await supabaseAdmin
+    // Perform upsert (insert or update) operation on your subscriptions table
+    const { error: upsertError } = await supabaseAdmin
       .from("subscriptions")
-      .upsert(subscriptionData, { onConflict: "stripe_subscription_id" }); // Consider your primary key strategy here.
+      .upsert(subscriptionData, {
+        onConflict: "stripe_subscription_id", // Use Stripe's unique ID for conflict resolution
+        ignoreDuplicates: false, // Ensure updates happen for existing records
+      });
 
-    if (error) {
-      console.error("[webhook] Supabase upsert error:", error);
-      return send(event, 500, "Database error");
+    if (upsertError) {
+      console.error(
+        `[webhook] Supabase upsert error for subscription ${subscription.id} (user: ${userId}):`,
+        upsertError
+      );
+      return send(event, 500, `Database error: ${upsertError.message}`);
     }
+
     console.log(
-      `[webhook] Processed event: ${stripeEvent.type}, subscription: ${subscription.id} for user: ${userId}`
+      `[webhook] Successfully processed event: ${stripeEvent.type}, subscription: ${subscription.id} for user: ${userId}`
     );
     return { received: true };
   } catch (error: any) {
-    console.error(`[webhook] Unhandled error: ${error.message}`);
-    return send(event, 500, "Internal Server Error");
+    console.error(
+      `[webhook] Unhandled error during event processing: ${error.message}`,
+      error
+    );
+    // Return 500 for internal server errors to Stripe, so they can retry
+    return send(event, 500, `Internal Server Error: ${error.message}`);
   }
 });

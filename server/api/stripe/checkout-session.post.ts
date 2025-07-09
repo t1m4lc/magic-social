@@ -1,23 +1,19 @@
-import { useServerStripe } from "#stripe/server"; // Provided by @unlok-co/nuxt-stripe
+// server/api/stripe/create-checkout-session.ts
+
+import { useServerStripe } from "#stripe/server";
 import {
   serverSupabaseServiceRole,
   serverSupabaseUser,
 } from "#supabase/server";
 import { z } from "zod";
 import { Database } from "~/supabase/supabase";
+import { defineEventHandler, readBody, createError, getQuery } from "h3";
 
 const checkoutSessionSchema = z.object({
   priceId: z.string().startsWith("price_"), // Stripe Price ID
 });
 
-// Utility to ensure baseUrl always has a valid scheme
-const getBaseUrl = (): string => {
-  // Fallbacks
-  if (process.env.NODE_ENV === "production") {
-    return "https://magic-social.com"; // <-- Set your production domain here
-  }
-  return "http://localhost:3000";
-};
+// REMOVED: getBaseUrl utility function, as it will be dynamic per request
 
 export default defineEventHandler(async (event) => {
   const user = await serverSupabaseUser(event);
@@ -41,11 +37,34 @@ export default defineEventHandler(async (event) => {
   }
 
   const { priceId } = validation.data;
-  console.log("[Checkout Session API] Processing for price ID:", priceId);
+  console.log(
+    `[Checkout Session API] User ${user.id} processing for price ID: ${priceId}`
+  );
 
   const stripe = await useServerStripe(event);
   const supabaseAdminClient = serverSupabaseServiceRole<Database>(event);
-  const baseUrl = getBaseUrl();
+
+  // --- DYNAMIC BASE URL CONSTRUCTION ---
+  // Get the host from the request headers
+  const host = event.node.req.headers.host;
+  if (!host) {
+    console.error(
+      "[Checkout Session API] Could not determine host from request headers."
+    );
+    throw createError({
+      statusCode: 500,
+      message: "Server configuration error: Host header missing.",
+    });
+  }
+
+  // Determine the protocol (http or https)
+  // In production, you'll almost always be using HTTPS.
+  // In development, it's typically HTTP unless you've configured HTTPS locally.
+  // Nuxt Dev Server usually runs on HTTP. Vercel/Netlify/etc. will proxy to HTTPS.
+  const protocol = process.env.NODE_ENV === "production" ? "https" : "http"; // Safe assumption for most setups
+  const baseUrl = `${protocol}://${host}`;
+  console.log(`[Checkout Session API] Dynamic Base URL determined: ${baseUrl}`);
+  // --- END DYNAMIC BASE URL CONSTRUCTION ---
 
   // --- BEGIN SERVER-SIDE SUBSCRIPTION CHECK ---
   const { data: existingSubscriptions, error: existingSubError } =
@@ -55,11 +74,11 @@ export default defineEventHandler(async (event) => {
         "stripe_subscription_id, status, stripe_price_id, stripe_customer_id"
       )
       .eq("user_id", user.id)
-      .in("status", ["active", "trialing"]); // Check for active or trialing subscriptions
+      .in("status", ["active", "trialing"]);
 
   if (existingSubError) {
     console.error(
-      `Error checking existing subscriptions for user ${user.id}:`,
+      `[Checkout Session API] Error checking existing subscriptions for user ${user.id}:`,
       existingSubError
     );
     throw createError({
@@ -69,13 +88,12 @@ export default defineEventHandler(async (event) => {
   }
 
   if (existingSubscriptions && existingSubscriptions.length > 0) {
-    // User has at least one active or trialing subscription.
     const activeSub = existingSubscriptions[0];
     console.log(
-      `User ${user.id} already has an active/trialing subscription: ${activeSub.stripe_subscription_id} (Status: ${activeSub.status}).`
+      `[Checkout Session API] User ${user.id} already has an active/trialing subscription: ${activeSub.stripe_subscription_id} (Status: ${activeSub.status}).`
     );
     throw createError({
-      statusCode: 409, // Conflict
+      statusCode: 409,
       message:
         "User already has an active subscription. Please manage your subscription in the customer portal.",
       data: {
@@ -87,7 +105,6 @@ export default defineEventHandler(async (event) => {
 
   let stripeCustomerId: string | undefined | null;
 
-  // Always get the most recent stripe_customer_id from subscriptions only
   const { data: lastSub } = await supabaseAdminClient
     .from("subscriptions")
     .select("stripe_customer_id")
@@ -100,7 +117,7 @@ export default defineEventHandler(async (event) => {
 
   if (!stripeCustomerId) {
     console.log(
-      `No Stripe customer ID found for user ${user.id} in subscriptions. Creating a new Stripe customer.`
+      `[Checkout Session API] No Stripe customer ID found for user ${user.id} in subscriptions. Creating a new Stripe customer.`
     );
     try {
       const customer = await stripe.customers.create({
@@ -112,12 +129,11 @@ export default defineEventHandler(async (event) => {
       });
       stripeCustomerId = customer.id;
       console.log(
-        `Created Stripe customer ${stripeCustomerId} for user ${user.id}.`
+        `[Checkout Session API] Created Stripe customer ${stripeCustomerId} for user ${user.id}.`
       );
-      // Do NOT update profiles table. Webhook will persist customer ID in subscriptions.
     } catch (e: any) {
       console.error(
-        `Error in Stripe customer creation for user ${user.id}:`,
+        `[Checkout Session API] Error in Stripe customer creation for user ${user.id}:`,
         e
       );
       const errorMessage =
@@ -130,17 +146,18 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  // Get query parameters to check for redirect
   const query = getQuery(event);
   const redirectParam = query.redirect as string;
 
-  // Validate and construct success URL
-  let successUrl = `${baseUrl}/dashboard?success=true`; // Default to dashboard
+  let successUrl = `${baseUrl}/dashboard?success=true`;
 
   if (redirectParam && typeof redirectParam === "string") {
-    // Security: Only allow relative URLs that start with / and don't contain protocol
     if (redirectParam.startsWith("/") && !redirectParam.includes("://")) {
       successUrl = `${baseUrl}${redirectParam}`;
+    } else {
+      console.warn(
+        `[Checkout Session API] Invalid redirect URL ignored: ${redirectParam}`
+      );
     }
   }
 
@@ -157,19 +174,27 @@ export default defineEventHandler(async (event) => {
       mode: "subscription",
       allow_promotion_codes: true,
       success_url: successUrl,
-      cancel_url: `${baseUrl}/pricing?canceled=true`, // Or a specific cancellation feedback page
+      cancel_url: `${baseUrl}/pricing?canceled=true`,
       metadata: {
         supabase_user_id: user.id,
         stripe_price_id: priceId,
       },
     });
 
+    console.log(
+      `[Checkout Session API] Created Stripe Checkout Session ${session.id} for user ${user.id}.`
+    );
+
     return { sessionId: session.id, sessionUrl: session.url };
   } catch (error: any) {
-    console.error("Stripe Checkout Session Error:", error);
+    console.error(
+      "[Checkout Session API] Stripe Checkout Session Error:",
+      error
+    );
     throw createError({
       statusCode: 500,
       message: error.message || "Failed to create checkout session",
+      data: { rawError: error.message },
     });
   }
 });
