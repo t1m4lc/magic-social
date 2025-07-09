@@ -1,5 +1,11 @@
 import { defineEventHandler } from "h3";
-import Stripe from "stripe";
+import { useServerStripe } from "#stripe/server";
+import type Stripe from "stripe";
+
+// checkout.session.completed
+// invoice.payment_succeeded
+// customer.subscription.created
+// checkout.session.completed
 
 export const config = {
   bodyParser: false,
@@ -7,7 +13,7 @@ export const config = {
 
 export default defineEventHandler(async (event) => {
   const config = useRuntimeConfig();
-  const stripe = new Stripe(config.stripeSecretKey);
+  const stripe = await useServerStripe(event);
 
   const sig = event.node.req.headers["stripe-signature"] as string;
   const rawBody = await readRawBody(event);
