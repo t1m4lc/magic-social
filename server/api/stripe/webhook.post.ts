@@ -1,7 +1,11 @@
 import { defineEventHandler } from "h3";
 import { useServerStripe } from "#stripe/server";
 import type Stripe from "stripe";
-import { serverSupabaseClient, serverSupabaseUser } from "#supabase/server";
+import {
+  serverSupabaseClient,
+  serverSupabaseServiceRole,
+  serverSupabaseUser,
+} from "#supabase/server";
 import type { Database, TablesInsert } from "~/supabase/supabase";
 
 /**
@@ -78,7 +82,7 @@ const getSubscriptionFromEvent = async (
 export default defineEventHandler(async (event) => {
   const config = useRuntimeConfig();
   const stripe = await useServerStripe(event);
-  const supabase = await serverSupabaseClient<Database>(event);
+  const supabaseAdmin = serverSupabaseServiceRole<Database>(event);
 
   const signature = event.node.req.headers["stripe-signature"] as string;
   const rawBody = await readRawBody(event);
@@ -114,7 +118,7 @@ export default defineEventHandler(async (event) => {
     }
     const metadata = { ...subscription.metadata, user_id: user.id };
     const subscriptionData = toSubscriptionModel({ ...subscription, metadata });
-    const { error } = await supabase
+    const { error } = await supabaseAdmin
       .from("subscriptions")
       .upsert(subscriptionData, { onConflict: "user_id" });
     if (error) {
