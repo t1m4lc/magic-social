@@ -182,7 +182,7 @@ export default defineEventHandler(async (event) => {
       success_url: successUrl,
       cancel_url: `${baseUrl}/pricing?canceled=true`,
       metadata: {
-        supabase_user_id: user.id, // This is the metadata passed to the Checkout Session
+        supabase_user_id: lastSub?.stripe_customer_id, // This is the metadata passed to the Checkout Session
         stripe_price_id: priceId,
       },
     });
