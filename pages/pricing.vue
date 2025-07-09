@@ -8,6 +8,20 @@ import GoogleSignInButton from '~/components/GoogleSignInButton.vue'
 import { dailyLimitMap, getPlanTypeWithPriceId } from '~/shared/price.util'
 import LoadingSpinner from '~/components/LoadingSpinner.vue'
 
+interface Plan {
+  id: string
+  stripe_price_id: string | null
+  name: string
+  price: string
+  period: string
+  description: string
+  popular: boolean
+  available: boolean
+  availableFeatures: string[]
+  unavailableFeatures: string[]
+  buttonText: string
+  buttonVariant: 'default' | 'outline' | 'contact' | string
+}
 
 // Utility to always provide a valid origin with scheme
 const getOrigin = (): string => {
@@ -47,9 +61,6 @@ const handleSubscribe = async (priceId: string): Promise<void> => {
       }
     })
 
-    console.log("RESPONSE", response);
-
-
     // Use navigateTo for client-side navigation
     await navigateTo(response.sessionUrl, { external: true })
   } catch (err: any) {
@@ -60,11 +71,13 @@ const handleSubscribe = async (priceId: string): Promise<void> => {
   }
 }
 
+const user = useSupabaseUser()
 // Handle query parameters for success/cancel states
 const route = useRoute()
 const success = computed<boolean>(() => Boolean(route.query.success))
 const canceled = computed<boolean>(() => Boolean(route.query.canceled))
 const plan = computed<string | undefined>(() => typeof route.query.plan === 'string' ? route.query.plan : undefined)
+const isAuth = computed<boolean>(() => !!user)
 
 useHead({
   title: 'Pricing - Magic Social | AI-powered Twitter Chrome Extension',
@@ -83,20 +96,6 @@ useHead({
 })
 
 
-interface Plan {
-  id: string
-  stripe_price_id: string | null
-  name: string
-  price: string
-  period: string
-  description: string
-  popular: boolean
-  available: boolean
-  availableFeatures: string[]
-  unavailableFeatures: string[]
-  buttonText: string
-  buttonVariant: 'default' | 'outline' | 'contact' | string
-}
 
 const plans: Plan[] = [
   {
@@ -173,7 +172,6 @@ const plans: Plan[] = [
 ]
 
 
-const user = useSupabaseUser()
 const showAuthModal = ref(false)
 
 const handleCardClick = (priceId: string | null) => {
@@ -182,7 +180,7 @@ const handleCardClick = (priceId: string | null) => {
     return
   }
 
-  if (!user.value) {
+  if (!isAuth.value) {
     showAuthModal.value = true
     return
   }
@@ -210,7 +208,10 @@ const handleCardClick = (priceId: string | null) => {
           <NuxtLink to="/#testimonials" class="text-foreground/60 hover:text-foreground transition-colors">Reviews</NuxtLink>
           <NuxtLink to="/pricing" class="text-foreground hover:text-foreground transition-colors font-medium">Pricing</NuxtLink>
         </nav>
-        <ShimmerButton class="px-4 py-2 text-sm hover:scale-105 active:scale-95 transition-transform duration-200" shimmer-color='#ffffff' background='#000000' aria-label="Install Magic Social Chrome Extension">
+        <Button v-if="isAuth" @click="navigateTo('/dashboard')">
+          Dashboard
+        </Button>
+        <ShimmerButton v-else  class="px-4 py-2 text-sm hover:scale-105 active:scale-95 transition-transform duration-200" shimmer-color='#ffffff' background='#000000' aria-label="Install Magic Social Chrome Extension">
           Install Extension
         </ShimmerButton>
       </div>

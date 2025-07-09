@@ -1,6 +1,6 @@
 type priceId = string;
 type limit = number;
-type planType = "free" | "pro" | "ultimate";
+export type planType = "free" | "pro" | "ultimate";
 
 const planMap: Record<priceId, planType> = {
   price_1Ri8kwLuCK4UmVgSsh5T3laq: "pro",
