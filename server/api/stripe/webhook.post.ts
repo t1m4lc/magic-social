@@ -1,71 +1,128 @@
 import { defineEventHandler } from "h3";
 import { useServerStripe } from "#stripe/server";
 import type Stripe from "stripe";
+import { serverSupabaseClient } from "#supabase/server";
+import type { Database, TablesInsert } from "~/supabase/supabase";
 
-// checkout.session.completed
-// invoice.payment_succeeded
-// customer.subscription.created
-// checkout.session.completed
+/**
+ * Transform Stripe.Subscription into DB-ready subscription row.
+ * Uses bracket notation for current_period_start and current_period_end due to Stripe type limitations.
+ */
+const toSubscriptionModel = (
+  subscription: Stripe.Subscription
+): TablesInsert<"subscriptions"> => {
+  const current_period_start = (subscription as any)["current_period_start"] as
+    | number
+    | undefined;
+  const current_period_end = (subscription as any)["current_period_end"] as
+    | number
+    | undefined;
+  return {
+    user_id: subscription.metadata.user_id,
+    stripe_subscription_id: subscription.id,
+    stripe_customer_id: subscription.customer as string,
+    stripe_price_id: subscription.items.data[0]?.price.id,
+    status: subscription.status,
+    metadata: subscription.metadata,
+    cancel_at_period_end: subscription.cancel_at_period_end,
+    canceled_at: subscription.canceled_at
+      ? new Date(subscription.canceled_at * 1000).toISOString()
+      : null,
+    current_period_start: current_period_start
+      ? new Date(current_period_start * 1000).toISOString()
+      : null,
+    current_period_end: current_period_end
+      ? new Date(current_period_end * 1000).toISOString()
+      : null,
+    ended_at: subscription.ended_at
+      ? new Date(subscription.ended_at * 1000).toISOString()
+      : null,
+    trial_start: subscription.trial_start
+      ? new Date(subscription.trial_start * 1000).toISOString()
+      : null,
+    trial_end: subscription.trial_end
+      ? new Date(subscription.trial_end * 1000).toISOString()
+      : null,
+  };
+};
 
-export const config = {
-  bodyParser: false,
+const getSubscriptionFromEvent = async (
+  stripe: Stripe,
+  event: Stripe.Event
+): Promise<Stripe.Subscription | null> => {
+  switch (event.type) {
+    case "customer.subscription.created":
+    case "customer.subscription.updated":
+    case "customer.subscription.deleted":
+      return event.data.object as Stripe.Subscription;
+    case "invoice.payment_succeeded": {
+      const invoice = event.data.object as Stripe.Invoice & {
+        subscription?: string;
+      };
+      if (!invoice.subscription || typeof invoice.subscription !== "string")
+        return null;
+      return await stripe.subscriptions.retrieve(invoice.subscription);
+    }
+    case "checkout.session.completed": {
+      const session = event.data.object as Stripe.Checkout.Session;
+      if (session.mode !== "subscription" || !session.subscription) return null;
+      return await stripe.subscriptions.retrieve(
+        session.subscription as string
+      );
+    }
+    default:
+      return null;
+  }
 };
 
 export default defineEventHandler(async (event) => {
   const config = useRuntimeConfig();
   const stripe = await useServerStripe(event);
+  const supabase = await serverSupabaseClient<Database>(event);
 
-  const sig = event.node.req.headers["stripe-signature"] as string;
+  const signature = event.node.req.headers["stripe-signature"] as string;
   const rawBody = await readRawBody(event);
 
-  // Use constructEventAsync for SubtleCryptoProvider compatibility
-  const stripeEvent = await (async () => {
-    try {
-      console.log("[webhook] rawBody:", rawBody);
-      const eventObj = await stripe.webhooks.constructEventAsync(
-        rawBody!,
-        sig,
-        config.stripeWebhookSecret
-      );
-      console.log("[webhook] stripeEvent:", eventObj.type, eventObj.id);
-      return eventObj;
-    } catch (err) {
-      console.error("Webhook signature error:", err);
-      return send(event, 400, "Webhook Error");
-    }
-  })();
-
-  if (
-    !stripeEvent ||
-    typeof stripeEvent !== "object" ||
-    !("type" in stripeEvent)
-  ) {
-    return { error: true, message: "Invalid Stripe event" };
-  }
-
-  if (stripeEvent.type === "checkout.session.completed") {
-    const session = stripeEvent.data.object as Stripe.Checkout.Session;
-    console.log(
-      "[webhook] checkout.session.completed session:",
-      session.id,
-      session.subscription
+  let stripeEvent: Stripe.Event;
+  try {
+    stripeEvent = await stripe.webhooks.constructEventAsync(
+      rawBody!,
+      signature,
+      config.stripeWebhookSecret
     );
-    if (session.subscription) {
-      // Fetch the subscription from Stripe for testing
-      const subscription = await stripe.subscriptions.retrieve(
-        session.subscription as string
-      );
-      console.log(
-        "[webhook] subscription fetched:",
-        subscription.id,
-        subscription.status
-      );
-      return { subscription };
-    }
-    console.log("[webhook] No subscription on session.");
-    return { message: "No subscription on session." };
+  } catch (error: any) {
+    console.error(`[webhook] Error verifying signature: ${error.message}`);
+    return send(event, 400, `Webhook Error: ${error.message}`);
   }
 
-  console.log("[webhook] Event not handled:", stripeEvent.type);
-  return { received: true };
+  try {
+    const subscription = await getSubscriptionFromEvent(stripe, stripeEvent);
+    if (!subscription) {
+      console.warn(
+        `[webhook] No subscription found for event: ${stripeEvent.type}`
+      );
+      return { received: true };
+    }
+    if (!subscription.metadata?.user_id) {
+      console.error(
+        `[webhook] Missing user_id in subscription metadata: ${subscription.id}`
+      );
+      return send(event, 400, "Missing user_id in metadata");
+    }
+    const subscriptionData = toSubscriptionModel(subscription);
+    const { error } = await supabase
+      .from("subscriptions")
+      .upsert(subscriptionData, { onConflict: "user_id" });
+    if (error) {
+      console.error("[webhook] Supabase upsert error:", error);
+      return send(event, 500, "Database error");
+    }
+    console.log(
+      `[webhook] Processed event: ${stripeEvent.type}, subscription: ${subscription.id}`
+    );
+    return { received: true };
+  } catch (error: any) {
+    console.error(`[webhook] Unhandled error: ${error.message}`);
+    return send(event, 500, "Internal Server Error");
+  }
 });
