@@ -1,7 +1,7 @@
 import { defineEventHandler } from "h3";
 import { useServerStripe } from "#stripe/server";
 import type Stripe from "stripe";
-import { serverSupabaseClient } from "#supabase/server";
+import { serverSupabaseClient, serverSupabaseUser } from "#supabase/server";
 import type { Database, TablesInsert } from "~/supabase/supabase";
 
 /**
@@ -103,13 +103,17 @@ export default defineEventHandler(async (event) => {
       );
       return { received: true };
     }
-    if (!subscription.metadata?.user_id) {
+
+    // Always use user_id from serverSupabaseUser
+    const user = await serverSupabaseUser(event);
+    if (!user || typeof user.id !== "string") {
       console.error(
-        `[webhook] Missing user_id in subscription metadata: ${subscription.id}`
+        `[webhook] No authenticated user found for event: ${stripeEvent.type}`
       );
-      return send(event, 400, "Missing user_id in metadata");
+      return send(event, 400, "Missing authenticated user");
     }
-    const subscriptionData = toSubscriptionModel(subscription);
+    const metadata = { ...subscription.metadata, user_id: user.id };
+    const subscriptionData = toSubscriptionModel({ ...subscription, metadata });
     const { error } = await supabase
       .from("subscriptions")
       .upsert(subscriptionData, { onConflict: "user_id" });
