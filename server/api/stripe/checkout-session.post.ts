@@ -13,13 +13,26 @@ const checkoutSessionSchema = z.object({
   priceId: z.string().startsWith("price_"), // Stripe Price ID
 });
 
-// REMOVED: getBaseUrl utility function, as it will be dynamic per request
-
 export default defineEventHandler(async (event) => {
   const user = await serverSupabaseUser(event);
   if (!user || !user.id || !user.email) {
+    // This implies user is NOT logged in or session is invalid.
+    // If you see this error, the frontend needs to ensure user is authenticated.
+    console.error(
+      "[Checkout Session API] Unauthorized: User or user ID/email missing."
+    );
     throw createError({ statusCode: 401, message: "Unauthorized" });
   }
+
+  // --- CRITICAL DEBUGGING LINE ---
+  // Log the exact user.id that will be passed to Stripe metadata.
+  console.log(
+    `[Checkout Session API Debug] Supabase User ID retrieved: ${user.id}`
+  );
+  console.log(
+    `[Checkout Session API Debug] Supabase User Email retrieved: ${user.email}`
+  );
+  // --- END CRITICAL DEBUGGING LINE ---
 
   const body = await readBody(event);
   const validation = checkoutSessionSchema.safeParse(body);
@@ -44,8 +57,6 @@ export default defineEventHandler(async (event) => {
   const stripe = await useServerStripe(event);
   const supabaseAdminClient = serverSupabaseServiceRole<Database>(event);
 
-  // --- DYNAMIC BASE URL CONSTRUCTION ---
-  // Get the host from the request headers
   const host = event.node.req.headers.host;
   if (!host) {
     console.error(
@@ -57,14 +68,9 @@ export default defineEventHandler(async (event) => {
     });
   }
 
-  // Determine the protocol (http or https)
-  // In production, you'll almost always be using HTTPS.
-  // In development, it's typically HTTP unless you've configured HTTPS locally.
-  // Nuxt Dev Server usually runs on HTTP. Vercel/Netlify/etc. will proxy to HTTPS.
-  const protocol = process.env.NODE_ENV === "production" ? "https" : "http"; // Safe assumption for most setups
+  const protocol = process.env.NODE_ENV === "production" ? "https" : "http";
   const baseUrl = `${protocol}://${host}`;
   console.log(`[Checkout Session API] Dynamic Base URL determined: ${baseUrl}`);
-  // --- END DYNAMIC BASE URL CONSTRUCTION ---
 
   // --- BEGIN SERVER-SIDE SUBSCRIPTION CHECK ---
   const { data: existingSubscriptions, error: existingSubError } =
@@ -124,7 +130,7 @@ export default defineEventHandler(async (event) => {
         email: user.email,
         name: user.user_metadata?.full_name || user.email.split("@")[0],
         metadata: {
-          supabase_user_id: user.id,
+          supabase_user_id: user.id, // Good to keep this consistent on the customer object too
         },
       });
       stripeCustomerId = customer.id;
@@ -176,13 +182,13 @@ export default defineEventHandler(async (event) => {
       success_url: successUrl,
       cancel_url: `${baseUrl}/pricing?canceled=true`,
       metadata: {
-        supabase_user_id: user.id,
+        supabase_user_id: user.id, // This is the metadata passed to the Checkout Session
         stripe_price_id: priceId,
       },
     });
 
     console.log(
-      `[Checkout Session API] Created Stripe Checkout Session ${session.id} for user ${user.id}.`
+      `[Checkout Session API] Created Stripe Checkout Session ${session.id} for user ${user.id}. Session URL: ${session.url}`
     );
 
     return { sessionId: session.id, sessionUrl: session.url };
