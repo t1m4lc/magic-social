@@ -27,7 +27,6 @@ export default defineEventHandler(async (event) => {
     redirectPath.startsWith("/") ? redirectPath : `/${redirectPath}`
   }`;
 
-  // Fetch the user's profile to get their stripe_customer_id
   const { data: subscription, error: subscriptionError } =
     await supabaseAdminClient
       .from("subscriptions")
@@ -49,7 +48,7 @@ export default defineEventHandler(async (event) => {
 
   try {
     const portalSession = await stripe.billingPortal.sessions.create({
-      customer: profile.stripe_customer_id,
+      customer: subscription.stripe_customer_id,
       return_url: returnUrl,
     });
 

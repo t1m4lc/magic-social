@@ -70,7 +70,7 @@ const getSubscriptionFromEvent = async (
       return event.data.object as Stripe.Subscription;
     case "invoice.payment_succeeded": {
       const invoice = event.data.object as Stripe.Invoice & {
-        subscription?: string; // Stripe invoice object might have this
+        subscription?: string; // Stripe invoice type might have this
       };
       if (!invoice.subscription || typeof invoice.subscription !== "string") {
         console.warn(
@@ -78,7 +78,15 @@ const getSubscriptionFromEvent = async (
         );
         return null;
       }
-      return await stripe.subscriptions.retrieve(invoice.subscription);
+      try {
+        return await stripe.subscriptions.retrieve(invoice.subscription);
+      } catch (error) {
+        console.error(
+          `[webhook] Failed to retrieve subscription ${invoice.subscription}:`,
+          error
+        );
+        return null;
+      }
     }
     case "checkout.session.completed": {
       const session = event.data.object as Stripe.Checkout.Session;
@@ -88,12 +96,18 @@ const getSubscriptionFromEvent = async (
         );
         return null;
       }
-      // When checkout.session.completed, the subscription object created by Stripe
-      // will inherit metadata from the checkout session.
-      // So, we retrieve the subscription, and its metadata will contain supabase_user_id.
-      return await stripe.subscriptions.retrieve(
-        session.subscription as string
-      );
+      try {
+        // The subscription will have metadata from subscription_data.metadata
+        return await stripe.subscriptions.retrieve(
+          session.subscription as string
+        );
+      } catch (error) {
+        console.error(
+          `[webhook] Failed to retrieve subscription ${session.subscription}:`,
+          error
+        );
+        return null;
+      }
     }
     // Add other event types you care about, e.g., 'customer.created', 'customer.updated' etc.
     default:
@@ -131,7 +145,7 @@ export default defineEventHandler(async (event) => {
       config.stripeWebhookSecret // Your webhook secret from Stripe Dashboard
     );
     console.log(
-      `[webhook] Successfully verified Stripe event: ${stripeEvent.type}`
+      `[webhook] Successfully verified Stripe event: ${stripeEvent.type} (ID: ${stripeEvent.id})`
     );
   } catch (error: any) {
     console.error(`[webhook] Error verifying signature: ${error.message}`);
@@ -147,7 +161,7 @@ export default defineEventHandler(async (event) => {
     const subscription = await getSubscriptionFromEvent(stripe, stripeEvent);
 
     if (!subscription) {
-      console.warn(
+      console.log(
         `[webhook] No relevant subscription found for event type: ${stripeEvent.type} (ID: ${stripeEvent.id}). Skipping DB update.`
       );
       // It's okay to return success if the event type isn't relevant to subscriptions
@@ -161,6 +175,11 @@ export default defineEventHandler(async (event) => {
       console.error(
         `[webhook] Missing or invalid 'supabase_user_id' in subscription metadata for event: ${stripeEvent.type}. Subscription ID: ${subscription.id}. This is critical for linking to Supabase user.`
       );
+      console.error(
+        `[webhook] Available metadata keys: ${Object.keys(
+          subscription.metadata || {}
+        ).join(", ")}`
+      );
       // If the user ID is missing, you cannot link the subscription.
       // This indicates a misconfiguration in how the Checkout Session was created.
       return send(
@@ -171,6 +190,10 @@ export default defineEventHandler(async (event) => {
     }
 
     const subscriptionData = toSubscriptionModel(subscription);
+
+    console.log(
+      `[webhook] Processing subscription ${subscription.id} for user ${userId} with status: ${subscription.status}`
+    );
 
     // Perform upsert (insert or update) operation on your subscriptions table
     const { error: upsertError } = await supabaseAdmin
@@ -189,12 +212,13 @@ export default defineEventHandler(async (event) => {
     }
 
     console.log(
-      `[webhook] Successfully processed event: ${stripeEvent.type}, subscription: ${subscription.id} for user: ${userId}`
+      `[webhook] Successfully processed event: ${stripeEvent.type}, subscription: ${subscription.id} for user: ${userId} with status: ${subscription.status}`
     );
     return { received: true };
   } catch (error: any) {
     console.error(
-      `[webhook] Unhandled error during event processing: ${error.message}`,
+      `[webhook] Unhandled error during event processing for event ${stripeEvent.type} (ID: ${stripeEvent.id}):`,
+      error.message,
       error
     );
     // Return 500 for internal server errors to Stripe, so they can retry

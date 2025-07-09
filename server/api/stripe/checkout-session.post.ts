@@ -169,7 +169,7 @@ export default defineEventHandler(async (event) => {
 
   try {
     const session = await stripe.checkout.sessions.create({
-      customer: stripeCustomerId,
+      customer: stripeCustomerId!,
       payment_method_types: ["card"],
       line_items: [
         {
@@ -181,8 +181,16 @@ export default defineEventHandler(async (event) => {
       allow_promotion_codes: true,
       success_url: successUrl,
       cancel_url: `${baseUrl}/pricing?canceled=true`,
+      // Set metadata on the subscription that will be created
+      subscription_data: {
+        metadata: {
+          supabase_user_id: user.id,
+          stripe_price_id: priceId,
+        },
+      },
+      // Keep session metadata for tracking the checkout process
       metadata: {
-        supabase_user_id: lastSub?.stripe_customer_id, // This is the metadata passed to the Checkout Session
+        supabase_user_id: user.id, // Pass the Supabase user ID for traceability
         stripe_price_id: priceId,
       },
     });
