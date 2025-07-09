@@ -10,7 +10,7 @@ const planMap: Record<priceId, planType> = {
 
 export const dailyLimitMap: Record<planType, limit> = {
   free: 5,
-  pro: 150,
+  pro: 5,
   ultimate: 1500,
 };
 
