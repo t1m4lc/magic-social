@@ -14,7 +14,8 @@ export const dailyLimitMap: Record<planType, limit> = {
   ultimate: 1500,
 };
 
-export const getPlanTypeWithPriceId = (id: priceId): planType => {
+export const getPlanTypeWithPriceId = (id: priceId | null): planType => {
+  if (!id) return "free";
   return planMap[id] ?? "free";
 };
 

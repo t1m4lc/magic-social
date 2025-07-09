@@ -203,15 +203,6 @@ const tweetTestimonials = [
     likes: 87
   }
 ]
-
-const user = useSupabaseUser()
-
-// Redirect if already logged in
-watch(user, (newUser) => {
-  if (newUser) {
-    navigateTo('/dashboard')
-  }
-}, { immediate: true })
 </script>
 
 <template>

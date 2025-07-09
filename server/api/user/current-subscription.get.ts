@@ -3,6 +3,7 @@ import { serverSupabaseClient, serverSupabaseUser } from "#supabase/server";
 import { createError } from "h3";
 import { defineCachedFunction } from "#imports";
 import { Database } from "~/supabase/supabase";
+import { getPlanTypeWithPriceId } from "~/shared/price.util";
 
 export default defineEventHandler(async (event) => {
   const user = await serverSupabaseUser(event);
@@ -42,6 +43,7 @@ export default defineEventHandler(async (event) => {
   );
 
   const stripePriceId = await getUserSubscription();
+  const planType = getPlanTypeWithPriceId(stripePriceId);
 
-  return { stripePriceId };
+  return { stripePriceId, planType };
 });

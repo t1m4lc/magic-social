@@ -3,14 +3,6 @@ import { serverSupabaseUser, serverSupabaseClient } from "#supabase/server";
 import { Database } from "~/supabase/supabase";
 import { getDailyLimitWithPriceId } from "~/shared/price.util";
 
-interface UserPlan {
-  plan_type: string;
-}
-
-interface RateLimitSettings {
-  daily_limit: number;
-}
-
 interface RequestBody {
   context: string;
   type: "reply" | "comment" | "tweet";

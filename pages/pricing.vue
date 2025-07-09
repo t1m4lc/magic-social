@@ -6,6 +6,7 @@ import { Check, X, DollarSign, Shield, Lock } from 'lucide-vue-next'
 import AuthModal from '~/components/AuthModal.vue'
 import GoogleSignInButton from '~/components/GoogleSignInButton.vue'
 import { dailyLimitMap, getPlanTypeWithPriceId } from '~/shared/price.util'
+import LoadingSpinner from '~/components/LoadingSpinner.vue'
 
 
 // Utility to always provide a valid origin with scheme
@@ -25,6 +26,7 @@ const getOrigin = (): string => {
 }
 
 const isLoading = ref(false)
+const portalLoading = ref(false)
 const error = ref<string | null>(null)
 
 // Handle subscription checkout
@@ -277,16 +279,62 @@ const handleCardClick = (priceId: string | null) => {
               </ul>
             </CardContent>
             <CardFooter>
-              <Button @click="handleCardClick(plan.stripe_price_id)" v-if="plan.buttonVariant === 'default'" variant="default" size="lg" class="w-full">
-                {{ plan.buttonText }}
+              <Button
+                @click="handleCardClick(plan.stripe_price_id)"
+                v-if="plan.buttonVariant === 'default'"
+                variant="default"
+                size="lg"
+                class="w-full flex items-center justify-center"
+                :disabled="isLoading || portalLoading"
+              >
+                <template v-if="isLoading && plan.id === 'pro'">
+                  <LoadingSpinner class="w-4 h-4 mr-2 animate-spin" />
+                  {{ plan.buttonText }} ...
+                </template>
+                <template v-else>
+                  {{ plan.buttonText }}
+                </template>
               </Button>
-              <Button @click="handleCardClick(plan.stripe_price_id)" v-else-if="plan.buttonVariant === 'outline'" variant="outline" size="lg" class="w-full">
-                {{ plan.buttonText }}
+              <Button
+                @click="handleCardClick(plan.stripe_price_id)"
+                v-else-if="plan.buttonVariant === 'outline'"
+                variant="outline"
+                size="lg"
+                class="w-full flex items-center justify-center"
+                :disabled="isLoading || portalLoading"
+              >
+                <template v-if="isLoading && plan.id === 'free'">
+                  <LoadingSpinner class="w-4 h-4 mr-2 animate-spin" />
+                  {{ plan.buttonText }} ...
+                </template>
+                <template v-else>
+                  {{ plan.buttonText }}
+                </template>
               </Button>
-              <Button @click="handleCardClick(plan.stripe_price_id)" v-else-if="plan.buttonVariant === 'contact'" variant="default" size="lg" class="w-full">
-                {{ plan.buttonText }}
+              <Button
+                @click="handleCardClick(plan.stripe_price_id)"
+                v-else-if="plan.buttonVariant === 'contact'"
+                variant="default"
+                size="lg"
+                class="w-full flex items-center justify-center"
+                :disabled="isLoading || portalLoading"
+              >
+                <template v-if="portalLoading && plan.id === 'ultimate'">
+                  <LoadingSpinner class="w-4 h-4 mr-2 animate-spin" />
+                  {{ plan.buttonText }} ...
+                </template>
+                <template v-else>
+                  {{ plan.buttonText }}
+                </template>
               </Button>
-              <Button @click="handleCardClick(plan.stripe_price_id)" v-else variant="secondary" size="lg" class="w-full">
+              <Button
+                @click="handleCardClick(plan.stripe_price_id)"
+                v-else
+                variant="secondary"
+                size="lg"
+                class="w-full flex items-center justify-center"
+                :disabled="isLoading || portalLoading"
+              >
                 {{ plan.buttonText }}
               </Button>
             </CardFooter>
