@@ -4,10 +4,6 @@ import type Stripe from "stripe";
 import { serverSupabaseServiceRole } from "#supabase/server";
 import type { Database, TablesInsert } from "~/supabase/supabase";
 
-/**
- * Transform Stripe.Subscription into DB-ready subscription row.
- * Uses bracket notation for current_period_start and current_period_end due to Stripe type limitations.
- */
 const toSubscriptionModel = (
   subscription: Stripe.Subscription
 ): TablesInsert<"subscriptions"> => {
@@ -18,7 +14,7 @@ const toSubscriptionModel = (
     | number
     | undefined;
   return {
-    user_id: subscription.metadata.user_id, // Ensure this is set when the subscription is created
+    user_id: subscription.metadata.user_id, // This will now come from the metadata passed during checkout
     stripe_subscription_id: subscription.id,
     stripe_customer_id: subscription.customer as string,
     stripe_price_id: subscription.items.data[0]?.price.id,
@@ -66,11 +62,14 @@ const getSubscriptionFromEvent = async (
     case "checkout.session.completed": {
       const session = event.data.object as Stripe.Checkout.Session;
       if (session.mode !== "subscription" || !session.subscription) return null;
-      // Also ensure that the user_id is passed as metadata during checkout session creation
-      // e.g., session.metadata = { user_id: 'your_supabase_user_id' }
-      return await stripe.subscriptions.retrieve(
+
+      // When checkout.session.completed, the subscription object created by Stripe
+      // will inherit metadata from the checkout session.
+      // So, we retrieve the subscription, and its metadata will contain user_id.
+      const subscription = await stripe.subscriptions.retrieve(
         session.subscription as string
       );
+      return subscription;
     }
     default:
       return null;
@@ -106,26 +105,28 @@ export default defineEventHandler(async (event) => {
       return { received: true };
     }
 
+    // Now, subscription.metadata.user_id should reliably contain the Supabase user ID
     const userId = subscription.metadata?.user_id;
 
     if (!userId || typeof userId !== "string") {
       console.error(
-        `[webhook] Missing user_id in subscription metadata for event: ${stripeEvent.type}`
+        `[webhook] Missing or invalid user_id in subscription metadata for event: ${stripeEvent.type}. Subscription ID: ${subscription.id}`
       );
-      // It's crucial to have the user_id in metadata for reconciliation.
-      // If it's missing, you might want to log this and potentially not process the event
-      // or handle it differently based on your application's logic.
+      // This indicates a setup issue where user_id wasn't passed during checkout session creation.
       return send(
         event,
         400,
-        "Missing user_id in subscription metadata. Cannot link to Supabase user."
+        "Missing user_id in subscription metadata. Ensure user_id is passed during checkout session creation."
       );
     }
 
+    // Ensure the metadata passed to toSubscriptionModel includes the user_id
+    // This is generally redundant if user_id is already in metadata, but good for clarity.
     const subscriptionData = toSubscriptionModel(subscription);
+
     const { error } = await supabaseAdmin
       .from("subscriptions")
-      .upsert(subscriptionData, { onConflict: "stripe_subscription_id" }); // Changed onConflict to stripe_subscription_id
+      .upsert(subscriptionData, { onConflict: "stripe_subscription_id" }); // Consider your primary key strategy here.
 
     if (error) {
       console.error("[webhook] Supabase upsert error:", error);
