@@ -57,15 +57,22 @@ const handleSubscribe = async (priceId: string): Promise<void> => {
       body: {
         priceId: priceId,
         successUrl: `${origin}/dashboard?success=true&plan=${getPlanTypeWithPriceId(priceId)}`,
-        cancelUrl: `${origin}/pricing?canceled=true`
+        cancelUrl: `${origin}/pricing?canceled=true`,
+        code: discountCode.value ? 'FRIENDS' : undefined
       }
     })
 
     // Use navigateTo for client-side navigation
     await navigateTo(response.sessionUrl, { external: true })
   } catch (err: any) {
+    const errorMsg = err?.data?.message || err?.message || '';
+    if (errorMsg.includes('Auth session missing')) {
+      showAuthModal.value = true;
+      error.value = null;
+    } else {
+      error.value = errorMsg || 'Failed to create checkout session';
+    }
     console.error('Checkout error:', err)
-    error.value = err?.data?.message || err?.message || 'Failed to create checkout session'
   } finally {
     isLoading.value = false
   }
@@ -78,6 +85,7 @@ const success = computed<boolean>(() => Boolean(route.query.success))
 const canceled = computed<boolean>(() => Boolean(route.query.canceled))
 const plan = computed<string | undefined>(() => typeof route.query.plan === 'string' ? route.query.plan : undefined)
 const isAuth = computed<boolean>(() => !!user)
+const discountCode = computed(() => route.query.code === 'friends');
 
 useHead({
   title: 'Pricing - Magic Social | AI-powered Twitter Chrome Extension',
@@ -102,7 +110,7 @@ const plans: Plan[] = [
     id: 'ultimate',
     name: 'ULTIMATE',
     stripe_price_id: null,
-    price: '€39',
+    price: '€40',
     period: '/mo',
     description: 'Advanced automation and scaling features',
     popular: false,
@@ -124,9 +132,9 @@ const plans: Plan[] = [
     id: 'pro',
     name: 'PRO',
     stripe_price_id: String(useRuntimeConfig().public.stripeProPriceId ?? ''),
-    price: '€4',
+    price: discountCode.value ? '€4' : '€8',
     period: '/mo',
-    description: 'For serious Twitter growth and engagement',
+    description: discountCode.value ? 'For serious Twitter growth and engagement (-50% Friends Offer)' : 'For serious Twitter growth and engagement',
     popular: true,
     available: true,
     availableFeatures: [
@@ -141,7 +149,7 @@ const plans: Plan[] = [
       'Auto-like feature',
       'Prioritize support',
     ],
-    buttonText: 'Upgrade to Pro',
+    buttonText: discountCode.value ? 'Upgrade to Pro (-50% Friends Offer)' : 'Upgrade to Pro',
     buttonVariant: 'default',
   },
   {
@@ -259,12 +267,25 @@ const handleCardClick = (priceId: string | null) => {
                 Most Popular
               </span>
             </div>
+            <!-- Friends Offer Badge -->
+            <div v-if="plan.id === 'pro' && discountCode" class="absolute -top-12 left-1/2 transform -translate-x-1/2">
+              <span class="bg-green-600 text-white px-4 py-1 rounded-full text-sm font-bold shadow-lg border border-green-700">
+                -50% Friends Offer
+              </span>
+            </div>
             <CardHeader class="text-center pb-4">
               <CardTitle class="text-2xl font-bold">{{ plan.name }}</CardTitle>
               <CardDescription class="text-sm">{{ plan.description }}</CardDescription>
-              <div class="pt-4">
-                <span class="text-4xl font-bold">{{ plan.price }}</span>
-                <span class="text-muted-foreground ml-1">{{ plan.period }}</span>
+              <div class="pt-4 flex flex-col items-center">
+                <div v-if="plan.id === 'pro' && discountCode" class="flex items-center gap-2 justify-center">
+                  <span class="text-4xl font-bold text-green-700">€4</span>
+                  <span class="text-2xl text-muted-foreground line-through">€8</span>
+                  <span class="text-muted-foreground ml-1">{{ plan.period }}</span>
+                </div>
+                <div v-else>
+                  <span class="text-4xl font-bold">{{ plan.price }}</span>
+                  <span class="text-muted-foreground ml-1">{{ plan.period }}</span>
+                </div>
               </div>
             </CardHeader>
             <CardContent class="flex-1">
@@ -348,13 +369,13 @@ const handleCardClick = (priceId: string | null) => {
     <section class="py-16 px-4 bg-background">
       <div class="container max-w-6xl mx-auto">
         <div class="grid md:grid-cols-3 gap-8 text-center">
-          <!-- 7-Day Money Back -->
+          <!-- No Credit Card Required -->
           <div class="flex flex-col items-center p-6">
             <div class="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mb-4">
               <DollarSign class="w-8 h-8 text-muted-foreground" />
             </div>
-            <h3 class="text-lg font-semibold mb-2">7-Day Money Back</h3>
-            <p class="text-sm text-muted-foreground">Not satisfied? Get a full refund within 7 days, no questions asked.</p>
+            <h3 class="text-lg font-semibold mb-2">No Credit Card Required</h3>
+            <p class="text-sm text-muted-foreground">Sign up, install the extension and explore all free features—no payment info needed to start.</p>
           </div>
 
           <!-- Cancel Anytime -->

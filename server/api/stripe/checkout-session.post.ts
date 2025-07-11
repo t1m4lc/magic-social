@@ -101,7 +101,7 @@ export default defineEventHandler(async (event) => {
     throw createError({
       statusCode: 409,
       message:
-        "User already has an active subscription. Please manage your subscription in the customer portal.",
+        "User already has an active subscription. Please manage your subscription in your dashboard.",
       data: {
         isSubscribed: true,
       },
