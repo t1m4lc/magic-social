@@ -154,6 +154,7 @@ export default defineEventHandler(async (event) => {
 
   const query = getQuery(event);
   const redirectParam = query.redirect as string;
+  const promoCode = typeof query.code === "string" ? query.code : undefined;
 
   let successUrl = `${baseUrl}/dashboard?success=true`;
 
@@ -168,7 +169,7 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
-    const session = await stripe.checkout.sessions.create({
+    const sessionParams: Record<string, any> = {
       customer: stripeCustomerId!,
       payment_method_types: ["card"],
       line_items: [
@@ -181,19 +182,24 @@ export default defineEventHandler(async (event) => {
       allow_promotion_codes: true,
       success_url: successUrl,
       cancel_url: `${baseUrl}/pricing?canceled=true`,
-      // Set metadata on the subscription that will be created
       subscription_data: {
         metadata: {
           supabase_user_id: user.id,
           stripe_price_id: priceId,
         },
       },
-      // Keep session metadata for tracking the checkout process
       metadata: {
-        supabase_user_id: user.id, // Pass the Supabase user ID for traceability
+        supabase_user_id: user.id,
         stripe_price_id: priceId,
       },
-    });
+    };
+
+    // If promoCode is present, add it to discounts
+    if (promoCode) {
+      sessionParams.discounts = [{ promotion_code: promoCode }];
+    }
+
+    const session = await stripe.checkout.sessions.create(sessionParams);
 
     console.log(
       `[Checkout Session API] Created Stripe Checkout Session ${session.id} for user ${user.id}. Session URL: ${session.url}`
