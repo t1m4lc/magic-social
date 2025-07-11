@@ -52,8 +52,7 @@ export default defineEventHandler(async (event): Promise<ResponseData> => {
   if (count >= daily_limit) {
     throw createError({
       statusCode: 429,
-      statusMessage:
-        "Daily generation limit reached. Please upgrade your plan.",
+      statusMessage: `Daily generation limit reached (${count}/${daily_limit}). Please upgrade your plan.`,
     });
   }
 

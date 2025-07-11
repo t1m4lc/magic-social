@@ -316,7 +316,6 @@ const usageError = ref<string | null>(null)
 // Fetch AI usage data
 const { data: usageData, pending: usageLoading, error: usageFetchError } = await useFetch<{ count: number }>(
   '/api/ai/usage',
-  { key: 'ai-usage-24h' }
 )
 
 watchEffect(() => {

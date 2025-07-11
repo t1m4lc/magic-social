@@ -1,6 +1,10 @@
 <script setup>
 import { ShimmerButton } from '~/components/ui/shimmer-button'
 import BlackHoleBackground from '~/components/ui/bg-black-hole/BlackHoleBackground.vue'
+
+function onMagicianClick() {
+  window.alert('The Magic Social Chrome Extension is currently under review and will be back soon. Stay tuned!');
+}
 </script>
 
 <template>
@@ -16,7 +20,13 @@ import BlackHoleBackground from '~/components/ui/bg-black-hole/BlackHoleBackgrou
           Magic reply it's like magic, transforming your Twitter drafts instantly.
         </p>
         <div class="flex justify-center">
-          <ShimmerButton class="px-8 py-4 text-lg font-semibold hover:scale-105 active:scale-95 transition-transform duration-200" shimmer-color="#ffffff" background="#000000" aria-label="Become a Twitter Magician with Magic Social">
+          <ShimmerButton
+            class="px-8 py-4 text-lg font-semibold hover:scale-105 active:scale-95 transition-transform duration-200"
+            shimmer-color="#ffffff"
+            background="#000000"
+            aria-label="Become a Twitter Magician with Magic Social"
+            @click="onMagicianClick"
+          >
             ✨ Become a Twitter Magician
           </ShimmerButton>
         </div>

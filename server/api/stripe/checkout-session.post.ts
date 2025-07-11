@@ -11,6 +11,7 @@ import { defineEventHandler, readBody, createError, getQuery } from "h3";
 
 const checkoutSessionSchema = z.object({
   priceId: z.string().startsWith("price_"), // Stripe Price ID
+  code: z.string().optional(), // Discount code
 });
 
 export default defineEventHandler(async (event) => {
@@ -49,7 +50,8 @@ export default defineEventHandler(async (event) => {
     });
   }
 
-  const { priceId } = validation.data;
+  const { priceId, code } = validation.data;
+
   console.log(
     `[Checkout Session API] User ${user.id} processing for price ID: ${priceId}`
   );
@@ -93,6 +95,7 @@ export default defineEventHandler(async (event) => {
     });
   }
 
+  // TODO and if active or !active and enddate < now
   if (existingSubscriptions && existingSubscriptions.length > 0) {
     const activeSub = existingSubscriptions[0];
     console.log(
@@ -154,7 +157,6 @@ export default defineEventHandler(async (event) => {
 
   const query = getQuery(event);
   const redirectParam = query.redirect as string;
-  const promoCode = typeof query.code === "string" ? query.code : undefined;
 
   let successUrl = `${baseUrl}/dashboard?success=true`;
 
@@ -168,6 +170,8 @@ export default defineEventHandler(async (event) => {
     }
   }
 
+  const isFriendsCode = code?.toLowerCase() === "friends";
+
   try {
     const sessionParams: Record<string, any> = {
       customer: stripeCustomerId!,
@@ -179,7 +183,6 @@ export default defineEventHandler(async (event) => {
         },
       ],
       mode: "subscription",
-      allow_promotion_codes: true,
       success_url: successUrl,
       cancel_url: `${baseUrl}/pricing?canceled=true`,
       subscription_data: {
@@ -194,9 +197,14 @@ export default defineEventHandler(async (event) => {
       },
     };
 
-    // If promoCode is present, add it to discounts
-    if (promoCode) {
-      sessionParams.discounts = [{ promotion_code: promoCode }];
+    if (isFriendsCode) {
+      sessionParams.discounts = [
+        {
+          promotion_code: "promo_1RjeUNLuCK4UmVgSwtttbUyD",
+        },
+      ];
+    } else {
+      sessionParams.allow_promotion_codes = true;
     }
 
     const session = await stripe.checkout.sessions.create(sessionParams);

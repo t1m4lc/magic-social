@@ -7,6 +7,7 @@ import AuthModal from '~/components/AuthModal.vue'
 import GoogleSignInButton from '~/components/GoogleSignInButton.vue'
 import { dailyLimitMap, getPlanTypeWithPriceId } from '~/shared/price.util'
 import LoadingSpinner from '~/components/LoadingSpinner.vue'
+import { ref, onMounted } from 'vue'
 
 interface Plan {
   id: string
@@ -51,16 +52,27 @@ const handleSubscribe = async (priceId: string): Promise<void> => {
 
   const origin = getOrigin()
 
+  interface CheckoutBody {
+    priceId: string
+    successUrl: string
+    cancelUrl: string
+    code?: string
+  }
+
+  let body: CheckoutBody = {
+    priceId: priceId,
+    successUrl: `${origin}/dashboard?success=true&plan=${getPlanTypeWithPriceId(priceId)}`,
+    cancelUrl: `${origin}/pricing?canceled=true`,
+  }
+
+  if (discountCode.value) body = { ...body, code: 'FRIENDS' }
+
   try {
     const response = await $fetch('/api/stripe/checkout-session', {
       method: 'POST',
-      body: {
-        priceId: priceId,
-        successUrl: `${origin}/dashboard?success=true&plan=${getPlanTypeWithPriceId(priceId)}`,
-        cancelUrl: `${origin}/pricing?canceled=true`,
-        code: discountCode.value ? 'FRIENDS' : undefined
-      }
+      body
     })
+
 
     // Use navigateTo for client-side navigation
     await navigateTo(response.sessionUrl, { external: true })
@@ -103,8 +115,6 @@ useHead({
   ]
 })
 
-
-
 const plans: Plan[] = [
   {
     id: 'ultimate',
@@ -120,7 +130,6 @@ const plans: Plan[] = [
       `${dailyLimitMap['ultimate']} OpenAI requests per 24h`,
       'Automation',
       'Schedule posts',
-      'Auto-like feature',
       'Prioritize support',
 
     ],
@@ -146,7 +155,6 @@ const plans: Plan[] = [
     unavailableFeatures: [
       'Automation',
       'Schedule posts',
-      'Auto-like feature',
       'Prioritize support',
     ],
     buttonText: discountCode.value ? 'Upgrade to Pro (-50% Friends Offer)' : 'Upgrade to Pro',
@@ -171,7 +179,6 @@ const plans: Plan[] = [
       'Save & reuse custom prompts',
       'Automation',
       'Schedule posts',
-      'Auto-like feature',
       'Prioritize support',
     ],
     buttonText: 'Get Started Free',
@@ -181,6 +188,7 @@ const plans: Plan[] = [
 
 
 const showAuthModal = ref(false)
+const showBanner = ref(false)
 
 const handleCardClick = (priceId: string | null) => {
   if (!priceId) {
@@ -195,10 +203,16 @@ const handleCardClick = (priceId: string | null) => {
   const planType = getPlanTypeWithPriceId(priceId)
 
   if (planType === 'pro') handleSubscribe(priceId)
-  else if (planType === 'free') navigateTo(`/dashboard?success=true&plan=${planType}`)
+  else if (planType === 'free') navigateTo(`/dashboard`)
   else if (planType === 'ultimate') navigateTo('mailto:timothyalcaide+magic@gmail.com?subject=Ultimate%20Plan%20Inquiry&body=Hi!%20I%27m%20interested%20in%20the%20Ultimate%20plan%20for%20Magic%20Social.%20Could%20you%20please%20provide%20more%20details%20about%20pricing%20and%20availability%3F', { external: true })
   else throw new Error('No plan type found')
 }
+
+onMounted(() => {
+  setTimeout(() => {
+    showBanner.value = true
+  }, 3000)
+})
 </script>
 
 <template>
@@ -219,7 +233,7 @@ const handleCardClick = (priceId: string | null) => {
         <Button v-if="isAuth" @click="navigateTo('/dashboard')">
           Dashboard
         </Button>
-        <ShimmerButton v-else  class="px-4 py-2 text-sm hover:scale-105 active:scale-95 transition-transform duration-200" shimmer-color='#ffffff' background='#000000' aria-label="Install Magic Social Chrome Extension">
+        <ShimmerButton v-else class="px-4 py-2 text-sm hover:scale-105 active:scale-95 transition-transform duration-200" shimmer-color='#ffffff' background='#000000' aria-label="Install Magic Social Chrome Extension">
           Install Extension
         </ShimmerButton>
       </div>
@@ -301,14 +315,7 @@ const handleCardClick = (priceId: string | null) => {
               </ul>
             </CardContent>
             <CardFooter>
-              <Button
-                @click="handleCardClick(plan.stripe_price_id)"
-                v-if="plan.buttonVariant === 'default'"
-                variant="default"
-                size="lg"
-                class="w-full flex items-center justify-center"
-                :disabled="isLoading || portalLoading"
-              >
+              <Button @click="handleCardClick(plan.stripe_price_id)" v-if="plan.buttonVariant === 'default'" variant="default" size="lg" class="w-full flex items-center justify-center" :disabled="isLoading || portalLoading">
                 <template v-if="isLoading && plan.id === 'pro'">
                   <LoadingSpinner class="w-4 h-4 mr-2 animate-spin" />
                   {{ plan.buttonText }} ...
@@ -317,14 +324,7 @@ const handleCardClick = (priceId: string | null) => {
                   {{ plan.buttonText }}
                 </template>
               </Button>
-              <Button
-                @click="handleCardClick(plan.stripe_price_id)"
-                v-else-if="plan.buttonVariant === 'outline'"
-                variant="outline"
-                size="lg"
-                class="w-full flex items-center justify-center"
-                :disabled="isLoading || portalLoading"
-              >
+              <Button @click="handleCardClick(plan.stripe_price_id)" v-else-if="plan.buttonVariant === 'outline'" variant="outline" size="lg" class="w-full flex items-center justify-center" :disabled="isLoading || portalLoading">
                 <template v-if="isLoading && plan.id === 'free'">
                   <LoadingSpinner class="w-4 h-4 mr-2 animate-spin" />
                   {{ plan.buttonText }} ...
@@ -333,14 +333,7 @@ const handleCardClick = (priceId: string | null) => {
                   {{ plan.buttonText }}
                 </template>
               </Button>
-              <Button
-                @click="handleCardClick(plan.stripe_price_id)"
-                v-else-if="plan.buttonVariant === 'contact'"
-                variant="default"
-                size="lg"
-                class="w-full flex items-center justify-center"
-                :disabled="isLoading || portalLoading"
-              >
+              <Button @click="handleCardClick(plan.stripe_price_id)" v-else-if="plan.buttonVariant === 'contact'" variant="default" size="lg" class="w-full flex items-center justify-center" :disabled="isLoading || portalLoading">
                 <template v-if="portalLoading && plan.id === 'ultimate'">
                   <LoadingSpinner class="w-4 h-4 mr-2 animate-spin" />
                   {{ plan.buttonText }} ...
@@ -349,14 +342,7 @@ const handleCardClick = (priceId: string | null) => {
                   {{ plan.buttonText }}
                 </template>
               </Button>
-              <Button
-                @click="handleCardClick(plan.stripe_price_id)"
-                v-else
-                variant="secondary"
-                size="lg"
-                class="w-full flex items-center justify-center"
-                :disabled="isLoading || portalLoading"
-              >
+              <Button @click="handleCardClick(plan.stripe_price_id)" v-else variant="secondary" size="lg" class="w-full flex items-center justify-center" :disabled="isLoading || portalLoading">
                 {{ plan.buttonText }}
               </Button>
             </CardFooter>
@@ -365,18 +351,32 @@ const handleCardClick = (priceId: string | null) => {
       </div>
     </section>
 
+    <!-- Friends Offer Banner -->
+    <div v-if="!discountCode" :class="[
+      'fixed bottom-0 left-0 w-screen z-50 flex justify-center pointer-events-none',
+      showBanner ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0',
+      'transition-all duration-700 ease-in-out'
+    ]" aria-live="polite">
+      <div class="bg-gray-100 border-t border-gray-300 shadow-lg pointer-events-auto w-full mx-auto flex items-center justify-between px-6 py-3">
+        <div class="flex flex-col md:flex-row md:items-center gap-2">
+          <span class="text-lg font-semibold text-gray-900">
+            <span class="font-bold">50% off</span> Twitter friends discount!
+          </span>
+          <span class="hidden md:inline text-sm text-gray-800 ml-3">
+            DM <a href="https://twitter.com/t1m4lc" target="_blank" rel="noopener" class="underline font-medium">@t1m4lc</a> for your exclusive code.
+          </span>
+        </div>
+        <Button variant="outline" size="sm" class="ml-4" @click="navigateTo('https://x.com/t1m4lc', { external: true })">
+          Request on Twitter
+        </Button>
+      </div>
+    </div>
+
     <!-- Trust Signals & Guarantees -->
     <section class="py-16 px-4 bg-background">
       <div class="container max-w-6xl mx-auto">
         <div class="grid md:grid-cols-3 gap-8 text-center">
-          <!-- No Credit Card Required -->
-          <div class="flex flex-col items-center p-6">
-            <div class="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mb-4">
-              <DollarSign class="w-8 h-8 text-muted-foreground" />
-            </div>
-            <h3 class="text-lg font-semibold mb-2">No Credit Card Required</h3>
-            <p class="text-sm text-muted-foreground">Sign up, install the extension and explore all free features—no payment info needed to start.</p>
-          </div>
+
 
           <!-- Cancel Anytime -->
           <div class="flex flex-col items-center p-6">
@@ -394,6 +394,15 @@ const handleCardClick = (priceId: string | null) => {
             </div>
             <h3 class="text-lg font-semibold mb-2">Secure & Private</h3>
             <p class="text-sm text-muted-foreground">Bank-grade encryption. Your data is protected and never shared with third parties.</p>
+          </div>
+
+          <!-- No Credit Card Required -->
+          <div class="flex flex-col items-center p-6">
+            <div class="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mb-4">
+              <DollarSign class="w-8 h-8 text-muted-foreground" />
+            </div>
+            <h3 class="text-lg font-semibold mb-2">No Credit Card Required</h3>
+            <p class="text-sm text-muted-foreground">Sign up, install the extension and explore all free features—no payment info needed to start.</p>
           </div>
         </div>
 

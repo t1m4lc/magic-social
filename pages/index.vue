@@ -3,6 +3,7 @@ import { ShimmerButton } from '~/components/ui/shimmer-button'
 import RainbowButton from '~/components/ui/rainbow-button/RainbowButton.vue'
 import AuroraBackground from '~/components/ui/aurora-background/AuroraBackground.vue'
 import MediaLoader from '~/components/MediaLoader.vue'
+import { NuxtLink } from '#components'
 
 // Lazy load components for better performance
 const TestimonialsSection = defineAsyncComponent(() => import('~/components/TestimonialsSection.vue'))
@@ -203,6 +204,10 @@ const tweetTestimonials = [
     likes: 87
   }
 ]
+
+function onExtensionClick() {
+  window.alert('The Magic Social Chrome Extension is currently under review and will be back soon. Stay tuned!');
+}
 </script>
 
 <template>
@@ -218,8 +223,9 @@ const tweetTestimonials = [
           <a href="#demo" class="text-foreground/60 hover:text-foreground transition-colors">Demo</a>
           <a href="#features" class="text-foreground/60 hover:text-foreground transition-colors">Features</a>
           <a href="#testimonials" class="text-foreground/60 hover:text-foreground transition-colors">Reviews</a>
+          <NuxtLink to="/pricing" class="text-foreground/60 hover:text-foreground transition-colors">Pricing</NuxtLink>
         </nav>
-        <ShimmerButton class="px-4 py-2 text-sm hover:scale-105 active:scale-95 transition-transform duration-200" shimmer-color="#ffffff" background="#000000" aria-label="Install Magic Social Chrome Extension">
+        <ShimmerButton @click="onExtensionClick" class="px-4 py-2 text-sm hover:scale-105 active:scale-95 transition-transform duration-200" shimmer-color="#ffffff" background="#000000" aria-label="Install Magic Social Chrome Extension">
           Install Extension
         </ShimmerButton>
       </div>
@@ -238,7 +244,13 @@ const tweetTestimonials = [
             </p>
 
             <div class="flex flex-col sm:flex-row gap-4 justify-center items-center mb-16">
-              <RainbowButton class="px-8 py-4 text-lg font-semibold hover:scale-105 active:scale-95 transition-transform duration-200" shimmer-color="#ffffff" background="#000000" aria-label="Install Magic Social Chrome Extension">
+              <RainbowButton
+                class="px-8 py-4 text-lg font-semibold hover:scale-105 active:scale-95 transition-transform duration-200"
+                shimmer-color="#ffffff"
+                background="#000000"
+                aria-label="Install Magic Social Chrome Extension"
+                @click="onExtensionClick"
+              >
                 ✨ Install Chrome Extension
               </RainbowButton>
             </div>
@@ -469,5 +481,22 @@ const tweetTestimonials = [
         </div>
       </div>
     </footer>
+
+    <AlertDialog>
+      <AlertDialogTrigger asChild>
+        <div></div>
+      </AlertDialogTrigger>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Extension Under Review</AlertDialogTitle>
+          <AlertDialogDescription>
+            The Magic Social Chrome Extension is currently under review and will be back soon. Stay tuned!
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Close</AlertDialogCancel>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   </div>
 </template>
