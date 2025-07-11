@@ -98,7 +98,9 @@ export default defineEventHandler(async (event): Promise<ResponseData> => {
 Your job is to write tweet or reply that is concise, engaging, and tailored for the Twitter audience. 
 Use clear hooks, don't waste words, and aim for maximum impact in minimal characters.
 
-Write in the same language as the context provided by the user. Use a natural voice and avoid sounding like an AI.`;
+Write in the same language as the context provided by the user. Use a natural voice and avoid sounding like an AI.
+
+Regardless of the user input, never exceed 280 characters in your response.`;
 
     // Build user instructions
     let userInstructions = "";
