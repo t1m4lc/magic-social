@@ -68,6 +68,16 @@ export default defineEventHandler(async (event): Promise<ResponseData> => {
 
   const body = await readBody<RequestBody>(event);
 
+  // Model authorization check
+  const authorizedModels = ["gpt-4o-mini"];
+  const requestedModel = (body as any).model || "gpt-4o-mini";
+  if (!authorizedModels.includes(requestedModel)) {
+    throw createError({
+      statusCode: 403,
+      statusMessage: "Model forbidden",
+    });
+  }
+
   if (!body.context?.trim()) {
     throw createError({
       statusCode: 400,
@@ -104,7 +114,7 @@ Write in the same language as the context provided by the user. Use a natural vo
 
     // Prepare OpenAI request
     const openAIPayload: OpenAIRequest = {
-      model: "gpt-4o-mini",
+      model: requestedModel,
       messages: [
         { role: "system", content: systemPrompt },
         {
