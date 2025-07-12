@@ -2,7 +2,6 @@ import type { OpenAIRequest, OpenAIResponse } from "~/types/openai";
 import { serverSupabaseUser, serverSupabaseClient } from "#supabase/server";
 import { Database } from "~/supabase/supabase";
 import { getDailyLimitWithPriceId } from "~/shared/price.util";
-import dayjs from "dayjs";
 
 interface RequestBody {
   context: string;

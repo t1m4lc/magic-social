@@ -19,15 +19,15 @@ export const dailyLimitMap: Record<planType, limit> = {
 
 export const getPlanTypeWithPriceId = (id: priceId | null): planType => {
   if (!id) return "free";
-  return planMap[id] ?? "free";
+  return planMap[id] || "free";
 };
 
 const getDailyLimitWithPlanType = (type: planType): limit => {
-  return dailyLimitMap[type] ?? FREE_COUNT;
+  return dailyLimitMap[type] || FREE_COUNT;
 };
 
 export const getDailyLimitWithPriceId = (id: priceId | null): limit => {
-  if (!id) return 0;
+  if (!id) return FREE_COUNT;
   const type = getPlanTypeWithPriceId(id);
   return getDailyLimitWithPlanType(type);
 };

@@ -481,22 +481,5 @@ function onExtensionClick() {
         </div>
       </div>
     </footer>
-
-    <AlertDialog>
-      <AlertDialogTrigger asChild>
-        <div></div>
-      </AlertDialogTrigger>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>Extension Under Review</AlertDialogTitle>
-          <AlertDialogDescription>
-            The Magic Social Chrome Extension is currently under review and will be back soon. Stay tuned!
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel>Close</AlertDialogCancel>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
   </div>
 </template>
