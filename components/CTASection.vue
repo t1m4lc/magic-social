@@ -1,9 +1,13 @@
 <script setup>
 import { ShimmerButton } from '~/components/ui/shimmer-button'
 import BlackHoleBackground from '~/components/ui/bg-black-hole/BlackHoleBackground.vue'
+import { URLS } from '~/shared/constants';
 
 function onMagicianClick() {
-  window.alert('The Magic Social Chrome Extension is currently under review and will be back soon. Stay tuned!');
+  navigateTo(URLS.CHROME_WEBSTORE, {
+    external: true,
+    open: { target: '_blank' }
+  });
 }
 </script>
 

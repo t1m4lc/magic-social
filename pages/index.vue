@@ -4,6 +4,7 @@ import RainbowButton from '~/components/ui/rainbow-button/RainbowButton.vue'
 import AuroraBackground from '~/components/ui/aurora-background/AuroraBackground.vue'
 import MediaLoader from '~/components/MediaLoader.vue'
 import { NuxtLink } from '#components'
+import { URLS } from '~/shared/constants'
 
 // Lazy load components for better performance
 const TestimonialsSection = defineAsyncComponent(() => import('~/components/TestimonialsSection.vue'))
@@ -205,8 +206,11 @@ const tweetTestimonials = [
   }
 ]
 
-function onExtensionClick() {
-  window.alert('The Magic Social Chrome Extension is currently under review and will be back soon. Stay tuned!');
+function onExtensionInstall() {
+  navigateTo(URLS.CHROME_WEBSTORE, {
+    external: true,
+    open: { target: '_blank' }
+  });
 }
 </script>
 
@@ -225,7 +229,7 @@ function onExtensionClick() {
           <a href="#testimonials" class="text-foreground/60 hover:text-foreground transition-colors">Reviews</a>
           <NuxtLink to="/pricing" class="text-foreground/60 hover:text-foreground transition-colors">Pricing</NuxtLink>
         </nav>
-        <ShimmerButton @click="onExtensionClick" class="px-4 py-2 text-sm hover:scale-105 active:scale-95 transition-transform duration-200" shimmer-color="#ffffff" background="#000000" aria-label="Install Magic Social Chrome Extension">
+        <ShimmerButton @click="onExtensionInstall()" class="px-4 py-2 text-sm hover:scale-105 active:scale-95 transition-transform duration-200" shimmer-color="#ffffff" background="#000000" aria-label="Install Magic Social Chrome Extension">
           Install Extension
         </ShimmerButton>
       </div>
@@ -244,13 +248,7 @@ function onExtensionClick() {
             </p>
 
             <div class="flex flex-col sm:flex-row gap-4 justify-center items-center mb-16">
-              <RainbowButton
-                class="px-8 py-4 text-lg font-semibold hover:scale-105 active:scale-95 transition-transform duration-200"
-                shimmer-color="#ffffff"
-                background="#000000"
-                aria-label="Install Magic Social Chrome Extension"
-                @click="onExtensionClick"
-              >
+              <RainbowButton class="px-8 py-4 text-lg font-semibold hover:scale-105 active:scale-95 transition-transform duration-200" shimmer-color="#ffffff" background="#000000" aria-label="Install Magic Social Chrome Extension" @click="onExtensionInstall">
                 ✨ Install Chrome Extension
               </RainbowButton>
             </div>
@@ -276,43 +274,30 @@ function onExtensionClick() {
             Watch how our AI-powered extension transforms your Twitter experience in real-time.
           </p>
         </div>
-        
+
         <div class="max-w-4xl mx-auto">
           <div class="relative rounded-2xl overflow-hidden border shadow-2xl bg-gradient-to-br from-blue-50/50 to-purple-50/50 dark:from-blue-950/20 dark:to-purple-950/20">
             <div class="aspect-video bg-black/5 dark:bg-white/5 flex items-center justify-center">
-              <MediaLoader 
-                src="/showcase.gif" 
-                media-type="gif"
-                :duration="2000"
-                :min-duration="1000"
-                title="Loading demo..."
-                subtitle="Getting ready to show you Magic Social in action"
-              >
+              <MediaLoader src="/showcase.gif" media-type="gif" :duration="2000" :min-duration="1000" title="Loading demo..." subtitle="Getting ready to show you Magic Social in action">
                 <template #default="{ loading, progress }">
-                  <img 
-                    src="/showcase.gif" 
-                    alt="Magic Social Chrome Extension Demo - AI-powered Twitter engagement in action"
-                    class="w-full h-full object-cover rounded-lg transition-all duration-700 ease-out"
-                    :class="{ 'opacity-0 blur-sm scale-105': loading, 'opacity-100 blur-0 scale-100': !loading }"
-                    loading="lazy"
-                  />
+                  <img src="/showcase.gif" alt="Magic Social Chrome Extension Demo - AI-powered Twitter engagement in action" class="w-full h-full object-cover rounded-lg transition-all duration-700 ease-out" :class="{ 'opacity-0 blur-sm scale-105': loading, 'opacity-100 blur-0 scale-100': !loading }" loading="lazy" />
                 </template>
               </MediaLoader>
             </div>
-            
+
             <!-- Video overlay with play button aesthetic -->
             <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
               <div class="absolute inset-0 bg-black/10 dark:bg-white/10 rounded-lg opacity-0 hover:opacity-100 transition-opacity duration-300"></div>
             </div>
-            
+
             <!-- Bottom gradient overlay for better text readability -->
             <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/20 to-transparent h-20 pointer-events-none"></div>
           </div>
-          
+
           <!-- Video description -->
           <div class="text-center mt-8">
             <p class="text-sm text-foreground/60 max-w-xl mx-auto">
-              See how Magic Social helps you craft perfect tweets and replies with AI-powered suggestions, 
+              See how Magic Social helps you craft perfect tweets and replies with AI-powered suggestions,
               tone customization, and real-time engagement optimization.
             </p>
           </div>
@@ -477,7 +462,7 @@ function onExtensionClick() {
         </div>
 
         <div class="text-center">
-            <p class="text-sm text-foreground/50">© {{ new Date().getFullYear() }} Magic Social. All rights reserved.</p>
+          <p class="text-sm text-foreground/50">© {{ new Date().getFullYear() }} Magic Social. All rights reserved.</p>
         </div>
       </div>
     </footer>

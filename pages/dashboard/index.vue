@@ -195,9 +195,10 @@
 <script setup lang="ts">
 import { Button } from '~/components/ui/button'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '~/components/ui/card'
-import type { planType } from '~/shared/price.util'
+import { dailyLimitMap } from '~/shared/constants'
 import type { Database } from '~/supabase/supabase'
-import { dailyLimitMap } from '~/shared/price.util'
+import type { planType } from '~/types/price'
+
 
 
 useHead({
@@ -246,11 +247,15 @@ const PLAN_DESCRIPTIONS: Record<planType, string> = {
   pro: 'Advanced features for professionals.',
   ultimate: 'Full features for teams and businesses.'
 }
-const planDisplayName = (type: planType | null): string =>
-  (type && PLAN_DISPLAY_NAMES[type]) || 'Unknown Plan'
+const planDisplayName = (type: planType | null | undefined): string => {
+  if (!type || !(type in PLAN_DISPLAY_NAMES)) return 'Unknown Plan';
+  return PLAN_DISPLAY_NAMES[type];
+}
 
-const planDescription = (type: planType | null): string =>
-  (type && PLAN_DESCRIPTIONS[type]) || 'Plan information unavailable.'
+const planDescription = (type: planType | null | undefined): string => {
+  if (!type || !(type in PLAN_DESCRIPTIONS)) return 'Plan information unavailable.';
+  return PLAN_DESCRIPTIONS[type];
+}
 
 const goToPricing = (): void => {
   navigateTo('/pricing')

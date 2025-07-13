@@ -5,9 +5,10 @@ import { Button } from '~/components/ui/button'
 import { Check, X, DollarSign, Shield, Lock } from 'lucide-vue-next'
 import AuthModal from '~/components/AuthModal.vue'
 import GoogleSignInButton from '~/components/GoogleSignInButton.vue'
-import { dailyLimitMap, getPlanTypeWithPriceId } from '~/shared/price.util'
+import { getPlanTypeWithPriceId } from '~/shared/price.util'
 import LoadingSpinner from '~/components/LoadingSpinner.vue'
 import { ref, onMounted } from 'vue'
+import { dailyLimitMap, URLS } from '~/shared/constants'
 
 interface Plan {
   id: string
@@ -213,6 +214,13 @@ onMounted(() => {
     showBanner.value = true
   }, 3000)
 })
+
+function onExtensionInstall() {
+  navigateTo(URLS.CHROME_WEBSTORE, {
+    external: true,
+    open: { target: '_blank' }
+  });
+}
 </script>
 
 <template>
@@ -233,7 +241,7 @@ onMounted(() => {
         <Button v-if="isAuth" @click="navigateTo('/dashboard')">
           Dashboard
         </Button>
-        <ShimmerButton v-else class="px-4 py-2 text-sm hover:scale-105 active:scale-95 transition-transform duration-200" shimmer-color='#ffffff' background='#000000' aria-label="Install Magic Social Chrome Extension">
+        <ShimmerButton @click="onExtensionInstall()" v-else class="px-4 py-2 text-sm hover:scale-105 active:scale-95 transition-transform duration-200" shimmer-color='#ffffff' background='#000000' aria-label="Install Magic Social Chrome Extension">
           Install Extension
         </ShimmerButton>
       </div>
@@ -438,7 +446,7 @@ onMounted(() => {
           Start free today and experience the magic of AI-powered Twitter engagement.
         </p>
         <div class="flex flex-col sm:flex-row gap-4 justify-center items-center">
-          <ShimmerButton class="px-4 py-2 text-sm hover:scale-105 active:scale-95 transition-transform duration-200" shimmer-color='#ffffff' background='#000000' aria-label="Install Magic Social Chrome Extension">
+          <ShimmerButton @click="onExtensionInstall" class="px-4 py-2 text-sm hover:scale-105 active:scale-95 transition-transform duration-200" shimmer-color='#ffffff' background='#000000' aria-label="Install Magic Social Chrome Extension">
             ✨ Install Chrome Extension
           </ShimmerButton>
         </div>
