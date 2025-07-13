@@ -8,6 +8,7 @@ import {
 import { z } from "zod";
 import { Database } from "~/supabase/supabase";
 import { defineEventHandler, readBody, createError, getQuery } from "h3";
+import { ACTIVE_DISCOUNT_CODE } from "~/shared/constants";
 
 const checkoutSessionSchema = z.object({
   priceId: z.string().startsWith("price_"), // Stripe Price ID
@@ -170,7 +171,8 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  const isFriendsCode = code?.toLowerCase() === "friends";
+  const isFriendsCode =
+    !!ACTIVE_DISCOUNT_CODE && code?.toLowerCase() === "xfriends";
 
   try {
     const sessionParams: Record<string, any> = {
@@ -200,7 +202,7 @@ export default defineEventHandler(async (event) => {
     if (isFriendsCode) {
       sessionParams.discounts = [
         {
-          promotion_code: "promo_1RjeUNLuCK4UmVgSwtttbUyD",
+          promotion_code: ACTIVE_DISCOUNT_CODE,
         },
       ];
     } else {

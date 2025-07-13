@@ -80,7 +80,6 @@ export default defineNuxtConfig({
     // Public keys (exposed to client-side)
     public: {
       stripeProPriceId: process.env.STRIPE_PRO_PRICE_ID,
-      // Add public runtime config here if needed
     },
   },
   supabase: {

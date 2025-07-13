@@ -1,9 +1,8 @@
 import type { limit, planType, priceId } from "../types/price";
 
 export const planMap: Record<priceId, planType> = {
-  price_1Ri8kwLuCK4UmVgSsh5T3laq: "pro",
-  price_1RiCFZQ6AECzZeTtcdGuhaKb: "pro", // TEST
-  price_1RjePcLuCK4UmVgSQNCesBGM: "pro", // TEST
+  price_1RkIx3LuCK4UmVgSWcLFnoDi: "pro",
+  price_1RjePcLuCK4UmVgSQNCesBGM: "pro", // TEST MODE
 };
 
 export const FREE_COUNT = 5;
@@ -19,3 +18,5 @@ export const URLS = {
   CHROME_WEBSTORE:
     "https://chromewebstore.google.com/detail/magic-social/jmhegjhgbgnnlpohnmicbploiiohnhdg",
 };
+
+export const ACTIVE_DISCOUNT_CODE = "promo_1RkJ6ELuCK4UmVgSmR8Mrdv9";
