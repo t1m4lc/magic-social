@@ -1,7 +1,5 @@
 import type { limit, planType, priceId } from "../types/price";
 
-const { stripeProPriceId } = useRuntimeConfig();
-
 export const planMap: Record<priceId, planType> = {
   price_1RkIx3LuCK4UmVgSWcLFnoDi: "pro",
   price_1RjePcLuCK4UmVgSQNCesBGM: "pro", // TEST MODE
