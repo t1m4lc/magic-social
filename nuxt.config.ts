@@ -78,6 +78,7 @@ export default defineNuxtConfig({
     openaiApiKey: process.env.OPENAI_API_KEY,
     stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET,
     // Public keys (exposed to client-side)
+    stripeProPriceId: process.env.STRIPE_PRO_PRICE_ID,
     public: {
       stripeProPriceId: process.env.STRIPE_PRO_PRICE_ID,
     },
