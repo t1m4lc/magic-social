@@ -16,7 +16,7 @@ export const dailyLimitMap: Record<planType, limit> = {
 
 export const URLS = {
   CHROME_WEBSTORE:
-    "https://chromewebstore.google.com/detail/magic-social/jmhegjhgbgnnlpohnmicbploiiohnhdg",
+    "https://chromewebstore.google.com/detail/magic-social/mnmclnmanoalefbinpcbhogibjbocglb",
 };
 
 export const ACTIVE_DISCOUNT_CODE = "promo_1RkJ6ELuCK4UmVgSmR8Mrdv9";
