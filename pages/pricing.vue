@@ -141,7 +141,7 @@ const plans: Plan[] = [
   {
     id: 'pro',
     name: 'PRO',
-    stripe_price_id: String(useRuntimeConfig().stripeProPriceId ?? ''),
+    stripe_price_id: String(useRuntimeConfig().public.stripeProPriceId ?? ''),
     price: discountCode.value ? '€4' : '€8',
     period: '/mo',
     description: discountCode.value ? 'For serious Twitter growth and engagement (-50% Friends Offer)' : 'For serious Twitter growth and engagement',
