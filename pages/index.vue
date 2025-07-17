@@ -1,10 +1,7 @@
 <script setup>
-import { ShimmerButton } from '~/components/ui/shimmer-button'
 import RainbowButton from '~/components/ui/rainbow-button/RainbowButton.vue'
 import AuroraBackground from '~/components/ui/aurora-background/AuroraBackground.vue'
 import MediaLoader from '~/components/MediaLoader.vue'
-import { NuxtLink } from '#components'
-import { URLS } from '~/shared/constants'
 
 // Lazy load components for better performance
 const TestimonialsSection = defineAsyncComponent(() => import('~/components/TestimonialsSection.vue'))
@@ -13,9 +10,13 @@ const FAQSection = defineAsyncComponent(() => import('~/components/FAQSection.vu
 const CTASection = defineAsyncComponent(() => import('~/components/CTASection.vue'))
 const FounderSection = defineAsyncComponent(() => import('~/components/FounderSection.vue'))
 
+definePageMeta({
+  layout: 'landing',
+})
+
 // SEO
 useHead({
-  title: 'Magic Social - AI-powered Twitter Chrome Extension',
+  title: 'Magic Social - AI-powered Social Media Chrome Extension',
   htmlAttrs: {
     lang: 'en'
   },
@@ -206,265 +207,208 @@ const tweetTestimonials = [
   }
 ]
 
-function onExtensionInstall() {
-  navigateTo(URLS.CHROME_WEBSTORE, {
-    external: true,
-    open: { target: '_blank' }
-  });
-}
 </script>
 
 <template>
-  <div class="min-h-screen bg-background text-foreground">
-    <!-- Header -->
-    <header class="border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
-      <div class="container max-w-7xl mx-auto flex h-16 items-center justify-between px-4">
-        <div class="flex items-center space-x-2">
-          <span class="text-xl saturate-150">✨</span>
-          <span class="font-semibold text-lg">Magic Social</span>
-        </div>
-        <nav class="hidden md:flex items-center space-x-6 text-sm">
-          <a href="#demo" class="text-foreground/60 hover:text-foreground transition-colors">Demo</a>
-          <a href="#features" class="text-foreground/60 hover:text-foreground transition-colors">Features</a>
-          <a href="#testimonials" class="text-foreground/60 hover:text-foreground transition-colors">Reviews</a>
-          <NuxtLink to="/pricing" class="text-foreground/60 hover:text-foreground transition-colors">Pricing</NuxtLink>
-        </nav>
-        <ShimmerButton @click="onExtensionInstall()" class="px-4 py-2 text-sm hover:scale-105 active:scale-95 transition-transform duration-200" shimmer-color="#ffffff" background="#000000" aria-label="Install Magic Social Chrome Extension">
-          Install Extension
-        </ShimmerButton>
-      </div>
-    </header>
+  <!-- Hero Section -->
+  <section>
+    <AuroraBackground>
+      <div class="py-20 px-4">
+        <div class="container max-w-4xl mx-auto text-center">
+          <h1 class="text-5xl md:text-6xl font-bold tracking-tight mb-6 text-foreground">
+            Turn 10 minutes into 10× Twitter engagement
+          </h1>
+          <p class="text-xl md:text-2xl text-foreground/80 mb-12 max-w-3xl mx-auto leading-relaxed">
+            AI-powered Chrome extension that helps you craft better tweets, replies, and grow your presence smarter.
+          </p>
 
-    <!-- Hero Section -->
-    <section>
-      <AuroraBackground>
-        <div class="py-20 px-4">
-          <div class="container max-w-4xl mx-auto text-center">
-            <h1 class="text-5xl md:text-6xl font-bold tracking-tight mb-6 text-foreground">
-              Turn 10 minutes into 10× Twitter engagement
-            </h1>
-            <p class="text-xl md:text-2xl text-foreground/80 mb-12 max-w-3xl mx-auto leading-relaxed">
-              AI-powered Chrome extension that helps you craft better tweets, replies, and grow your presence smarter.
-            </p>
+          <div class="flex flex-col sm:flex-row gap-4 justify-center items-center mb-16">
+            <RainbowButton class="px-8 py-4 text-lg font-semibold hover:scale-105 active:scale-95 transition-transform duration-200" shimmer-color="#ffffff" background="#000000" aria-label="Install Magic Social Chrome Extension" @click="onExtensionInstall">
+              ✨ Install Chrome Extension
+            </RainbowButton>
+          </div>
 
-            <div class="flex flex-col sm:flex-row gap-4 justify-center items-center mb-16">
-              <RainbowButton class="px-8 py-4 text-lg font-semibold hover:scale-105 active:scale-95 transition-transform duration-200" shimmer-color="#ffffff" background="#000000" aria-label="Install Magic Social Chrome Extension" @click="onExtensionInstall">
-                ✨ Install Chrome Extension
-              </RainbowButton>
+          <!-- Social Proof -->
+          <div class="flex justify-center items-center flex-col gap-2 text-sm text-foreground/60">
+            <div class="flex items-center gap-2">
+              <AnimatedTooltip :items="socialProof" />
             </div>
-
-            <!-- Social Proof -->
-            <div class="flex justify-center items-center flex-col gap-2 text-sm text-foreground/60">
-              <div class="flex items-center gap-2">
-                <AnimatedTooltip :items="socialProof" />
-              </div>
-              <span>Used by smart people</span>
-            </div>
+            <span>Used by smart people</span>
           </div>
         </div>
-      </AuroraBackground>
-    </section>
+      </div>
+    </AuroraBackground>
+  </section>
 
-    <!-- Product Video Section -->
-    <section id="demo" class="py-20 px-4 bg-muted/5">
-      <div class="container max-w-6xl mx-auto">
-        <div class="text-center mb-16">
-          <h2 class="text-3xl md:text-4xl font-bold mb-4">See Magic Social in Action</h2>
-          <p class="text-lg text-foreground/60 max-w-2xl mx-auto">
-            Watch how our AI-powered extension transforms your Twitter experience in real-time.
+  <!-- Product Video Section -->
+  <section id="demo" class="py-20 px-4 bg-muted/5">
+    <div class="container max-w-6xl mx-auto">
+      <div class="text-center mb-16">
+        <h2 class="text-3xl md:text-4xl font-bold mb-4">See Magic Social in Action</h2>
+        <p class="text-lg text-foreground/60 max-w-2xl mx-auto">
+          Watch how our AI-powered extension transforms your Twitter experience in real-time.
+        </p>
+      </div>
+
+      <div class="max-w-4xl mx-auto">
+        <div class="relative rounded-2xl overflow-hidden border shadow-2xl bg-gradient-to-br from-blue-50/50 to-purple-50/50 dark:from-blue-950/20 dark:to-purple-950/20">
+          <div class="aspect-video bg-black/5 dark:bg-white/5 flex items-center justify-center">
+            <MediaLoader src="/showcase.gif" media-type="gif" :duration="2000" :min-duration="1000" title="Loading demo..." subtitle="Getting ready to show you Magic Social in action">
+              <template #default="{ loading, progress }">
+                <img src="/showcase.gif" alt="Magic Social Chrome Extension Demo - AI-powered Twitter engagement in action" class="w-full h-full object-cover rounded-lg transition-all duration-700 ease-out" :class="{ 'opacity-0 blur-sm scale-105': loading, 'opacity-100 blur-0 scale-100': !loading }" loading="lazy" />
+              </template>
+            </MediaLoader>
+          </div>
+
+          <!-- Video overlay with play button aesthetic -->
+          <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <div class="absolute inset-0 bg-black/10 dark:bg-white/10 rounded-lg opacity-0 hover:opacity-100 transition-opacity duration-300"></div>
+          </div>
+
+          <!-- Bottom gradient overlay for better text readability -->
+          <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/20 to-transparent h-20 pointer-events-none"></div>
+        </div>
+
+        <!-- Video description -->
+        <div class="text-center mt-8">
+          <p class="text-sm text-foreground/60 max-w-xl mx-auto">
+            See how Magic Social helps you craft perfect tweets and replies with AI-powered suggestions,
+            tone customization, and real-time engagement optimization.
           </p>
         </div>
-
-        <div class="max-w-4xl mx-auto">
-          <div class="relative rounded-2xl overflow-hidden border shadow-2xl bg-gradient-to-br from-blue-50/50 to-purple-50/50 dark:from-blue-950/20 dark:to-purple-950/20">
-            <div class="aspect-video bg-black/5 dark:bg-white/5 flex items-center justify-center">
-              <MediaLoader src="/showcase.gif" media-type="gif" :duration="2000" :min-duration="1000" title="Loading demo..." subtitle="Getting ready to show you Magic Social in action">
-                <template #default="{ loading, progress }">
-                  <img src="/showcase.gif" alt="Magic Social Chrome Extension Demo - AI-powered Twitter engagement in action" class="w-full h-full object-cover rounded-lg transition-all duration-700 ease-out" :class="{ 'opacity-0 blur-sm scale-105': loading, 'opacity-100 blur-0 scale-100': !loading }" loading="lazy" />
-                </template>
-              </MediaLoader>
-            </div>
-
-            <!-- Video overlay with play button aesthetic -->
-            <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <div class="absolute inset-0 bg-black/10 dark:bg-white/10 rounded-lg opacity-0 hover:opacity-100 transition-opacity duration-300"></div>
-            </div>
-
-            <!-- Bottom gradient overlay for better text readability -->
-            <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/20 to-transparent h-20 pointer-events-none"></div>
-          </div>
-
-          <!-- Video description -->
-          <div class="text-center mt-8">
-            <p class="text-sm text-foreground/60 max-w-xl mx-auto">
-              See how Magic Social helps you craft perfect tweets and replies with AI-powered suggestions,
-              tone customization, and real-time engagement optimization.
-            </p>
-          </div>
-        </div>
       </div>
-    </section>
+    </div>
+  </section>
 
-    <!-- Why Magic Social -->
-    <section class="py-20 px-4">
-      <div class="container max-w-6xl mx-auto">
-        <div class="text-center mb-16">
-          <h2 class="text-3xl md:text-4xl font-bold mb-4">Why use Magic Social?</h2>
-          <p class="text-lg text-foreground/60 max-w-2xl mx-auto">
-            It’s never been easier to stay connected on Twitter.
-          </p>
-        </div>
-        <div class="grid md:grid-cols-3 gap-8">
-          <div class="text-center">
-            <div class="w-16 h-16 bg-gray-100 dark:bg-gray-800/50 rounded-xl flex items-center justify-center text-2xl mb-6 mx-auto saturate-150">
-              ⚡
-            </div>
-            <h3 class="text-xl font-semibold mb-3">Reply in Seconds</h3>
-            <p class="text-foreground/60 leading-relaxed">
-              Perfect replies with AI-powered prompts.
-            </p>
-          </div>
-          <div class="text-center">
-            <div class="w-16 h-16 bg-gray-100 dark:bg-gray-800/50 rounded-xl flex items-center justify-center text-2xl mb-6 mx-auto saturate-150">
-              📈
-            </div>
-            <h3 class="text-xl font-semibold mb-3">Growth by engaging</h3>
-            <p class="text-foreground/60 leading-relaxed">
-              See your likes, replies, and follower growth.
-            </p>
-          </div>
-          <div class="text-center">
-            <div class="w-16 h-16 bg-gray-100 dark:bg-gray-800/50 rounded-xl flex items-center justify-center text-2xl mb-6 mx-auto saturate-150">
-              🎯
-            </div>
-            <h3 class="text-xl font-semibold mb-3">Stay Consistent</h3>
-            <p class="text-foreground/60 leading-relaxed">
-              No more excuses, you can reply easily.
-            </p>
-          </div>
-        </div>
+  <!-- Why Magic Social -->
+  <section class="py-20 px-4">
+    <div class="container max-w-6xl mx-auto">
+      <div class="text-center mb-16">
+        <h2 class="text-3xl md:text-4xl font-bold mb-4">Why use Magic Social?</h2>
+        <p class="text-lg text-foreground/60 max-w-2xl mx-auto">
+          It’s never been easier to stay connected on Twitter.
+        </p>
       </div>
-    </section>
-
-    <!-- Testimonials -->
-    <ClientOnly>
-      <Suspense>
-        <TestimonialsSection :testimonials="tweetTestimonials" />
-        <template #fallback>
-          <div class="py-20 px-4 bg-muted/30">
-            <div class="container max-w-full mx-auto">
-              <div class="text-center mb-16">
-                <h2 class="text-3xl md:text-4xl font-bold mb-4">Loved by Makers</h2>
-                <p class="text-lg text-foreground/60">Loading testimonials...</p>
-              </div>
-              <div class="bg-muted/30 relative flex h-[600px] w-full flex-col items-center justify-center overflow-hidden rounded-lg">
-                <div class="animate-pulse">Loading amazing testimonials...</div>
-              </div>
-            </div>
-          </div>
-        </template>
-      </Suspense>
-    </ClientOnly>
-
-    <!-- Features -->
-    <ClientOnly>
-      <Suspense>
-        <FeaturesSection />
-        <template #fallback>
-          <div class="py-20 px-4 bg-muted/10">
-            <div class="container max-w-6xl mx-auto">
-              <div class="text-center mb-16">
-                <h2 class="text-3xl md:text-4xl font-bold mb-4">Features</h2>
-                <p class="text-lg text-foreground/60">Loading amazing features...</p>
-              </div>
-              <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-                <div v-for="i in 6" :key="i" class="border border-border rounded-xl p-6 animate-pulse">
-                  <div class="w-12 h-12 bg-gray-200 dark:bg-gray-700 rounded mb-4"></div>
-                  <div class="h-6 bg-gray-200 dark:bg-gray-700 rounded mb-3"></div>
-                  <div class="h-4 bg-gray-200 dark:bg-gray-700 rounded"></div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </template>
-      </Suspense>
-    </ClientOnly>
-
-    <!-- FAQ -->
-    <ClientOnly>
-      <Suspense>
-        <FAQSection />
-        <template #fallback>
-          <div class="py-24 px-4 bg-muted/10">
-            <div class="container max-w-6xl mx-auto">
-              <div class="text-center">
-                <h2 class="text-3xl md:text-4xl font-bold mb-4">Frequently Asked Questions</h2>
-                <p class="text-lg text-foreground/60">Loading FAQ...</p>
-              </div>
-            </div>
-          </div>
-        </template>
-      </Suspense>
-    </ClientOnly>
-
-    <!-- CTA Section -->
-    <ClientOnly>
-      <Suspense>
-        <CTASection />
-        <template #fallback>
-          <div class="relative h-96 w-full bg-muted/10 flex items-center justify-center">
-            <div class="text-center">
-              <h2 class="text-3xl md:text-4xl font-bold mb-6">Do you want to be a magician? ✨</h2>
-              <p class="text-lg text-foreground/60">Loading magical CTA...</p>
-            </div>
-          </div>
-        </template>
-      </Suspense>
-    </ClientOnly>
-
-    <!-- Founder Section -->
-    <ClientOnly>
-      <Suspense>
-        <FounderSection />
-        <template #fallback>
-          <div class="py-20 px-4 border-t border-border bg-muted/20">
-            <div class="container max-w-4xl mx-auto text-center">
-              <h3 class="text-2xl font-bold mb-4">Built by makers, for makers</h3>
-              <p class="text-lg text-foreground/60">Loading founder section...</p>
-            </div>
-          </div>
-        </template>
-      </Suspense>
-    </ClientOnly>
-
-    <!-- Footer -->
-    <footer class="border-t border-border py-16 px-4">
-      <div class="container max-w-6xl mx-auto">
-        <div class="flex items-center justify-center space-x-2 mb-8">
-          <span class="text-xl saturate-150">✨</span>
-          <span class="font-semibold text-lg">Magic Social</span>
-        </div>
-
-        <!-- Footer Links -->
-        <div class="flex justify-center space-x-8 mb-8">
-          <NuxtLink to="/pricing" class="text-sm text-foreground/60 hover:text-foreground transition-colors">
-            Pricing
-          </NuxtLink>
-          <NuxtLink to="/terms" class="text-sm text-foreground/60 hover:text-foreground transition-colors">
-            Terms
-          </NuxtLink>
-          <NuxtLink to="/privacy" class="text-sm text-foreground/60 hover:text-foreground transition-colors">
-            Privacy
-          </NuxtLink>
-          <a href="mailto:timothyalcaide+magic@gmail.com" class="text-sm text-foreground/60 hover:text-foreground transition-colors">
-            Contact
-          </a>
-        </div>
-
+      <div class="grid md:grid-cols-3 gap-8">
         <div class="text-center">
-          <p class="text-sm text-foreground/50">© {{ new Date().getFullYear() }} Magic Social. All rights reserved.</p>
+          <div class="w-16 h-16 bg-gray-100 dark:bg-gray-800/50 rounded-xl flex items-center justify-center text-2xl mb-6 mx-auto saturate-150">
+            ⚡
+          </div>
+          <h3 class="text-xl font-semibold mb-3">Reply in Seconds</h3>
+          <p class="text-foreground/60 leading-relaxed">
+            Perfect replies with AI-powered prompts.
+          </p>
+        </div>
+        <div class="text-center">
+          <div class="w-16 h-16 bg-gray-100 dark:bg-gray-800/50 rounded-xl flex items-center justify-center text-2xl mb-6 mx-auto saturate-150">
+            📈
+          </div>
+          <h3 class="text-xl font-semibold mb-3">Growth by engaging</h3>
+          <p class="text-foreground/60 leading-relaxed">
+            See your likes, replies, and follower growth.
+          </p>
+        </div>
+        <div class="text-center">
+          <div class="w-16 h-16 bg-gray-100 dark:bg-gray-800/50 rounded-xl flex items-center justify-center text-2xl mb-6 mx-auto saturate-150">
+            🎯
+          </div>
+          <h3 class="text-xl font-semibold mb-3">Stay Consistent</h3>
+          <p class="text-foreground/60 leading-relaxed">
+            No more excuses, you can reply easily.
+          </p>
         </div>
       </div>
-    </footer>
-  </div>
+    </div>
+  </section>
+
+  <!-- Testimonials -->
+  <ClientOnly>
+    <Suspense>
+      <TestimonialsSection :testimonials="tweetTestimonials" />
+      <template #fallback>
+        <div class="py-20 px-4 bg-muted/30">
+          <div class="container max-w-full mx-auto">
+            <div class="text-center mb-16">
+              <h2 class="text-3xl md:text-4xl font-bold mb-4">Loved by Makers</h2>
+              <p class="text-lg text-foreground/60">Loading testimonials...</p>
+            </div>
+            <div class="bg-muted/30 relative flex h-[600px] w-full flex-col items-center justify-center overflow-hidden rounded-lg">
+              <div class="animate-pulse">Loading amazing testimonials...</div>
+            </div>
+          </div>
+        </div>
+      </template>
+    </Suspense>
+  </ClientOnly>
+
+  <!-- Features -->
+  <ClientOnly>
+    <Suspense>
+      <FeaturesSection />
+      <template #fallback>
+        <div class="py-20 px-4 bg-muted/10">
+          <div class="container max-w-6xl mx-auto">
+            <div class="text-center mb-16">
+              <h2 class="text-3xl md:text-4xl font-bold mb-4">Features</h2>
+              <p class="text-lg text-foreground/60">Loading amazing features...</p>
+            </div>
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+              <div v-for="i in 6" :key="i" class="border border-border rounded-xl p-6 animate-pulse">
+                <div class="w-12 h-12 bg-gray-200 dark:bg-gray-700 rounded mb-4"></div>
+                <div class="h-6 bg-gray-200 dark:bg-gray-700 rounded mb-3"></div>
+                <div class="h-4 bg-gray-200 dark:bg-gray-700 rounded"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </template>
+    </Suspense>
+  </ClientOnly>
+
+  <!-- FAQ -->
+  <ClientOnly>
+    <Suspense>
+      <FAQSection />
+      <template #fallback>
+        <div class="py-24 px-4 bg-muted/10">
+          <div class="container max-w-6xl mx-auto">
+            <div class="text-center">
+              <h2 class="text-3xl md:text-4xl font-bold mb-4">Frequently Asked Questions</h2>
+              <p class="text-lg text-foreground/60">Loading FAQ...</p>
+            </div>
+          </div>
+        </div>
+      </template>
+    </Suspense>
+  </ClientOnly>
+
+  <!-- CTA Section -->
+  <ClientOnly>
+    <Suspense>
+      <CTASection />
+      <template #fallback>
+        <div class="relative h-96 w-full bg-muted/10 flex items-center justify-center">
+          <div class="text-center">
+            <h2 class="text-3xl md:text-4xl font-bold mb-6">Do you want to be a magician? ✨</h2>
+            <p class="text-lg text-foreground/60">Loading magical CTA...</p>
+          </div>
+        </div>
+      </template>
+    </Suspense>
+  </ClientOnly>
+
+  <!-- Founder Section -->
+  <ClientOnly>
+    <Suspense>
+      <FounderSection />
+      <template #fallback>
+        <div class="py-20 px-4 border-t border-border bg-muted/20">
+          <div class="container max-w-4xl mx-auto text-center">
+            <h3 class="text-2xl font-bold mb-4">Built by makers, for makers</h3>
+            <p class="text-lg text-foreground/60">Loading founder section...</p>
+          </div>
+        </div>
+      </template>
+    </Suspense>
+  </ClientOnly>
 </template>
