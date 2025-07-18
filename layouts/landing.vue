@@ -1,5 +1,6 @@
 <script setup>
 import ShimmerButton from '~/components/ui/shimmer-button/ShimmerButton.vue';
+import { URLS } from '~/shared/constants';
 
 function onExtensionInstall() {
  navigateTo(URLS.CHROME_WEBSTORE, {
