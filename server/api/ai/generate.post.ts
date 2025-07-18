@@ -1,5 +1,9 @@
 import type { OpenAIRequest, OpenAIResponse } from "~/types/openai";
-import { serverSupabaseUser, serverSupabaseClient } from "#supabase/server";
+import {
+  serverSupabaseUser,
+  serverSupabaseClient,
+  serverSupabaseServiceRole,
+} from "#supabase/server";
 import { Database } from "~/supabase/supabase";
 import { getDailyLimitWithPriceId } from "~/shared/price.util";
 
@@ -27,7 +31,7 @@ export default defineEventHandler(async (event): Promise<ResponseData> => {
     });
   }
 
-  const supabase = await serverSupabaseClient<Database>(event);
+  const supabaseAdminClient = serverSupabaseServiceRole<Database>(event);
 
   const { count } = await $fetch<{ count: number }>("/api/ai/usage", {
     method: "GET",
@@ -147,9 +151,11 @@ Regardless of the user input, never exceed 280 characters in your response.`;
       response.choices[0]?.message?.content || "No response generated";
 
     // Insert usage record
-    const { error: insertError } = await supabase.from("openai_usage").insert({
-      user_id: user.id,
-    });
+    const { error: insertError } = await supabaseAdminClient
+      .from("openai_usage")
+      .insert({
+        user_id: user.id,
+      });
 
     if (insertError) {
       console.error("Supabase insert error:", insertError);
