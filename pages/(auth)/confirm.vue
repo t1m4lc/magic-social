@@ -37,14 +37,12 @@ const handleWebApp = async () => {
 
 const handleExtension = (token: string) => {
   // Redirige vers l'extension avec le token
-  const extensionRedirect = `chrome-extension://bihnnpbmbplmblhmidddpepecdgpclgg/callback.html?token=${token}`;
+  const extensionRedirect = `chrome-extension://jmhegjhgbgnnlpohnmicbploiiohnhdg/callback.html?token=${token}`;
   window.location.href = extensionRedirect;
 };
 
 if (session.value?.access_token) {
-  if (isFromExtension()) {
-    console.log("FROM EXTENSION");
-    
+  if (isFromExtension()) {    
     handleExtension(session.value.access_token);
   } else {
     await handleWebApp();
