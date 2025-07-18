@@ -14,7 +14,17 @@ export const dailyLimitMap: Record<planType, limit> = {
   ultimate: 1500,
 };
 
-export const EXTENSION_ID = "jmhegjhgbgnnlpohnmicbploiiohnhdg";
+const isProd = process.env.NODE_ENV === "production";
+
+// Extension IDs for different environments
+const EXTENSION_IDS = {
+  development: "bihnnpbmbplmblhmidddpepecdgpclgg",
+  production: "jmhegjhgbgnnlpohnmicbploiiohnhdg",
+};
+
+export const EXTENSION_ID = isProd
+  ? EXTENSION_IDS.production
+  : EXTENSION_IDS.development;
 
 export const URLS = {
   CHROME_WEBSTORE: `https://chromewebstore.google.com/detail/magic-social/${EXTENSION_ID}`,
