@@ -1,3 +1,4 @@
+import { EXTENSION_ID } from "~/shared/constants";
 import type { Database } from "~/supabase/supabase";
 
 // Declare chrome as a global variable for TypeScript
@@ -17,7 +18,7 @@ export const useSendTokenToExtension = () => {
       chrome.runtime?.sendMessage
     ) {
       chrome.runtime.sendMessage(
-        "bihnnpbmbplmblhmidddpepecdgpclgg",
+        EXTENSION_ID,
         {
           type: "SUPABASE_LOGIN",
           token: accessToken,
@@ -40,7 +41,7 @@ export const notifyExtensionLogout = (): void => {
     typeof chrome !== "undefined" &&
     chrome.runtime?.sendMessage
   ) {
-    chrome.runtime.sendMessage("bihnnpbmbplmblhmidddpepecdgpclgg", {
+    chrome.runtime.sendMessage(EXTENSION_ID, {
       type: "SUPABASE_LOGOUT",
       origin: window.location.origin,
     });

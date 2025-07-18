@@ -5,6 +5,7 @@
 <script setup lang="ts">
 import { useAsyncData } from "#app";
 import { useSendTokenToExtension } from '~/composables/extensionNotifications'
+import { EXTENSION_ID } from "~/shared/constants";
 import type { Database } from "~/supabase/supabase";
 
 const client = useSupabaseClient<Database>();
@@ -37,7 +38,7 @@ const handleWebApp = async () => {
 
 const handleExtension = (token: string) => {
   // Redirige vers l'extension avec le token
-  const extensionRedirect = `chrome-extension://jmhegjhgbgnnlpohnmicbploiiohnhdg/callback.html?token=${token}`;
+  const extensionRedirect = `chrome-extension://${EXTENSION_ID}/callback.html?token=${token}`;
   window.location.href = extensionRedirect;
 };
 
