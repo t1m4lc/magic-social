@@ -2,6 +2,7 @@
 import RainbowButton from '~/components/ui/rainbow-button/RainbowButton.vue'
 import AuroraBackground from '~/components/ui/aurora-background/AuroraBackground.vue'
 import MediaLoader from '~/components/MediaLoader.vue'
+import { URLS } from '~/shared/constants';
 
 // Lazy load components for better performance
 const TestimonialsSection = defineAsyncComponent(() => import('~/components/TestimonialsSection.vue'))
@@ -9,6 +10,8 @@ const FeaturesSection = defineAsyncComponent(() => import('~/components/Features
 const FAQSection = defineAsyncComponent(() => import('~/components/FAQSection.vue'))
 const CTASection = defineAsyncComponent(() => import('~/components/CTASection.vue'))
 const FounderSection = defineAsyncComponent(() => import('~/components/FounderSection.vue'))
+
+
 
 definePageMeta({
   layout: 'landing',
@@ -30,6 +33,13 @@ useHead({
     { name: 'twitter:description', content: 'Turn 10 minutes of work into 10× Twitter engagement without leaving your browser.' },
   ]
 })
+
+function onExtensionInstall() {
+ navigateTo(URLS.CHROME_WEBSTORE, {
+  external: true,
+  open: { target: '_blank' }
+ });
+}
 
 // Social proof data for animated tooltip
 const socialProof = [
