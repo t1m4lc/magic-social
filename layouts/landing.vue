@@ -22,7 +22,13 @@ function onExtensionInstall() {
      <NuxtLink to="/#demo" class="text-foreground/60 hover:text-foreground transition-colors">Demo</NuxtLink>
      <NuxtLink to="/#features" class="text-foreground/60 hover:text-foreground transition-colors">Features</NuxtLink>
      <NuxtLink to="/#testimonials" class="text-foreground/60 hover:text-foreground transition-colors">Reviews</NuxtLink>
-     <NuxtLink to="/pricing" class="text-foreground hover:text-foreground transition-colors font-medium">Pricing</NuxtLink>
+     <NuxtLink
+      to="/pricing"
+      class="text-foreground hover:text-foreground transition-colors"
+      :class="{ 'font-medium': $route.path === '/pricing' }"
+     >
+      Pricing
+     </NuxtLink>
     </nav>
     <ShimmerButton @click="onExtensionInstall()" class="px-4 py-2 text-sm hover:scale-105 active:scale-95 transition-transform duration-200" shimmer-color="#ffffff" background="#000000" aria-label="Install Magic Social Chrome Extension">
      Install Extension
