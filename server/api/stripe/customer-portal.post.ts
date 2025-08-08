@@ -6,10 +6,15 @@ import {
 import { Database } from "~/supabase/supabase";
 
 export default defineEventHandler(async (event) => {
+  console.log("[Customer Portal] API called");
+
   const user = await serverSupabaseUser(event);
   if (!user) {
+    console.error("[Customer Portal] No user found");
     throw createError({ statusCode: 401, message: "Unauthorized" });
   }
+
+  console.log(`[Customer Portal] User authenticated: ${user.id}`);
 
   const supabaseAdminClient = serverSupabaseServiceRole<Database>(event);
   const stripe = await useServerStripe(event);
@@ -42,6 +47,11 @@ export default defineEventHandler(async (event) => {
       .limit(1)
       .single();
 
+  console.log(`[Customer Portal] Subscription query result:`, {
+    subscription,
+    subscriptionError,
+  });
+
   if (subscriptionError || !subscription || !subscription.stripe_customer_id) {
     console.error(
       `[Customer Portal] Error fetching profile or missing Stripe customer ID for user ${user.id}:`,
@@ -53,12 +63,24 @@ export default defineEventHandler(async (event) => {
     });
   }
 
+  console.log(
+    `[Customer Portal] Found customer ID: ${subscription.stripe_customer_id}`
+  );
+
   try {
+    console.log(
+      `[Customer Portal] Creating portal session for customer: ${subscription.stripe_customer_id}`
+    );
+    console.log(`[Customer Portal] Return URL: ${returnUrl}`);
+
     const portalSession = await stripe.billingPortal.sessions.create({
       customer: subscription.stripe_customer_id,
       return_url: returnUrl,
     });
 
+    console.log(
+      `[Customer Portal] Portal session created: ${portalSession.url}`
+    );
     return { portalUrl: portalSession.url };
   } catch (e: any) {
     console.error(

@@ -9,9 +9,6 @@
       </DialogHeader>
       <div class="mt-6 flex flex-col gap-3">
         <GoogleSignInButton :loading="submitting" @click="signInWithGoogle" />
-        <Button variant="outline" size="lg" class="w-full" @click="emit('close'); navigateTo('/auth/confirm')">
-          Continue with Email
-        </Button>
         <div v-if="error" class="mt-3 text-red-600 text-sm text-center">{{ errorMsg }}</div>
       </div>
     </DialogContent>

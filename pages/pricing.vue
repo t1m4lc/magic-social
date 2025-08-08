@@ -91,13 +91,23 @@ const handleSubscribe = async (priceId: string): Promise<void> => {
       error.value = null;
       // Create Stripe customer portal session to manage subscription
       try {
+        console.log('Calling customer portal API...')
         const portalResponse = await $fetch('/api/stripe/customer-portal', {
           method: 'POST'
         })
-        // Navigate to Stripe customer portal
-        await navigateTo(portalResponse.portalUrl, { external: true })
-      } catch (portalErr) {
+        console.log('Portal response received:', portalResponse)
+        
+        if (portalResponse?.portalUrl) {
+          console.log('Navigating to portal URL:', portalResponse.portalUrl)
+          // Navigate to Stripe customer portal
+          await navigateTo(portalResponse.portalUrl, { external: true })
+        } else {
+          console.error('No portalUrl in response')
+          throw new Error('No portal URL returned')
+        }
+      } catch (portalErr: any) {
         console.error('Failed to create customer portal session:', portalErr)
+        console.error('Portal error details:', portalErr?.data)
         // Fallback: redirect to dashboard with message
         await navigateTo('/dashboard?subscription_exists=true')
       }
