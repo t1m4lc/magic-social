@@ -8,7 +8,7 @@ import GoogleSignInButton from '~/components/GoogleSignInButton.vue'
 import { getPlanTypeWithPriceId } from '~/shared/price.util'
 import LoadingSpinner from '~/components/LoadingSpinner.vue'
 import { ref, onMounted } from 'vue'
-import { dailyLimitMap, URLS } from '~/shared/constants'
+import { dailyLimitMap, URLS, planMap } from '~/shared/constants'
 
 interface Plan {
   id: string
@@ -25,19 +25,22 @@ interface Plan {
   buttonVariant: 'default' | 'outline' | 'contact' | string
 }
 
-// Utility to always provide a valid origin with scheme
+// Utility to get current origin for debugging purposes
 const getOrigin = (): string => {
-  // Prefer Nuxt's useRequestURL composable
-  const { origin } = useRequestURL()
-  if (origin && /^https?:\/\//.test(origin)) return origin
+  // Always try client-side first if available (most reliable)
   if (import.meta.client && typeof window !== 'undefined') {
-    const winOrigin = window.location.origin
-    if (/^https?:\/\//.test(winOrigin)) return winOrigin
+    return window.location.origin
   }
-  // Fallback: use https for production, http for localhost
-  if (process.env.NODE_ENV === 'production') {
-    return 'https://magic-social.com' // <-- replace with your production domain
+  
+  // Server-side: try Nuxt's useRequestURL composable
+  try {
+    const { origin } = useRequestURL()
+    if (origin && /^https?:\/\//.test(origin)) return origin
+  } catch (error) {
+    console.warn('useRequestURL failed:', error)
   }
+  
+  // Fallback for development
   return 'http://localhost:3000'
 }
 
@@ -47,39 +50,64 @@ const error = ref<string | null>(null)
 
 // Handle subscription checkout
 const handleSubscribe = async (priceId: string): Promise<void> => {
-  if (isLoading.value) return
+  console.log('=== DEBUG handleSubscribe ===')
+  console.log('Starting subscription process for priceId:', priceId)
+  console.log('isLoading.value:', isLoading.value)
+  
+  if (isLoading.value) {
+    console.log('Already loading, returning early')
+    return
+  }
+  
   isLoading.value = true
   error.value = null
 
   const origin = getOrigin()
+  console.log('Origin determined:', origin)
+  console.log('Current URL details:')
+  if (import.meta.client) {
+    console.log('  - window.location.href:', window.location.href)
+    console.log('  - window.location.origin:', window.location.origin)
+    console.log('  - window.location.host:', window.location.host)
+    console.log('  - window.location.protocol:', window.location.protocol)
+  }
 
   interface CheckoutBody {
     priceId: string
-    successUrl: string
-    cancelUrl: string
     code?: string
   }
 
   let body: CheckoutBody = {
     priceId: priceId,
-    successUrl: `${origin}/dashboard?success=true&plan=${getPlanTypeWithPriceId(priceId)}`,
-    cancelUrl: `${origin}/pricing?canceled=true`,
   }
 
   if (discountCode.value) body = { ...body, code: 'FRIENDS' }
+  
+  console.log('Request body:', body)
 
   try {
+    console.log('Making fetch request to /api/stripe/checkout-session')
     const response = await $fetch('/api/stripe/checkout-session', {
       method: 'POST',
       body
     })
 
+    console.log('Checkout session response:', response)
 
     // Use navigateTo for client-side navigation
+    console.log('Navigating to:', response.sessionUrl)
     await navigateTo(response.sessionUrl, { external: true })
   } catch (err: any) {
+    console.error('=== CHECKOUT ERROR ===')
+    console.error('Full error object:', err)
+    console.error('Error data:', err?.data)
+    console.error('Error message:', err?.message)
+    console.error('Error status:', err?.status)
+    console.error('===================')
+    
     const errorMsg = err?.data?.message || err?.message || '';
     if (errorMsg.includes('Auth session missing')) {
+      console.log('Auth session missing - showing auth modal')
       showAuthModal.value = true;
       error.value = null;
     } else {
@@ -88,6 +116,7 @@ const handleSubscribe = async (priceId: string): Promise<void> => {
     console.error('Checkout error:', err)
   } finally {
     isLoading.value = false
+    console.log('=== END handleSubscribe ===')
   }
 }
 
@@ -97,8 +126,22 @@ const route = useRoute()
 const success = computed<boolean>(() => Boolean(route.query.success))
 const canceled = computed<boolean>(() => Boolean(route.query.canceled))
 const plan = computed<string | undefined>(() => typeof route.query.plan === 'string' ? route.query.plan : undefined)
-const isAuth = computed<boolean>(() => !!user)
+const isAuth = computed<boolean>(() => !!user.value)
 const discountCode = computed(() => route.query.code === 'friends');
+
+// Debug auth state
+watch(user, (newUser) => {
+  console.log('=== AUTH STATE CHANGE ===')
+  console.log('User changed to:', newUser)
+  console.log('isAuth computed:', !!newUser)
+  console.log('========================')
+}, { immediate: true })
+
+watch(isAuth, (newIsAuth) => {
+  console.log('=== isAuth COMPUTED CHANGE ===')
+  console.log('isAuth changed to:', newIsAuth)
+  console.log('==============================')
+}, { immediate: true })
 
 definePageMeta({
   layout: 'landing',
@@ -191,26 +234,58 @@ const plans: Plan[] = [
   },
 ]
 
+// Debug the Pro price ID
+const config = useRuntimeConfig()
+const proPriceId = config.public.stripeProPriceId
+console.log('=== DEBUG PRICING PAGE ===')
+console.log('Runtime config stripeProPriceId:', proPriceId)
+console.log('Pro plan stripe_price_id:', plans.find(p => p.id === 'pro')?.stripe_price_id)
+console.log('Plan map:', planMap)
+console.log('Environment mode:', process.env.NODE_ENV)
+console.log('===========================')
+
 
 const showAuthModal = ref(false)
 const showBanner = ref(false)
 
 const handleCardClick = (priceId: string | null) => {
-  if (!priceId) {
-    console.log('Need priceId');
+  console.log('=== DEBUG handleCardClick ===')
+  console.log('priceId:', priceId)
+  console.log('isAuth.value:', isAuth.value)
+  console.log('user.value:', user.value)
+  
+  if (!priceId || priceId === '' || priceId === 'undefined') {
+    console.log('Invalid priceId - returning early. PriceId value:', priceId);
+    error.value = 'Configuration error: Invalid price ID. Please contact support.'
     return
   }
 
   if (!isAuth.value) {
+    console.log('User not authenticated - showing auth modal')
     showAuthModal.value = true
     return
   }
+  
   const planType = getPlanTypeWithPriceId(priceId)
+  console.log('planType determined:', planType)
 
-  if (planType === 'pro') handleSubscribe(priceId)
-  else if (planType === 'free') navigateTo(`/dashboard`)
-  else if (planType === 'ultimate') navigateTo('mailto:timothyalcaide+magic@gmail.com?subject=Ultimate%20Plan%20Inquiry&body=Hi!%20I%27m%20interested%20in%20the%20Ultimate%20plan%20for%20Magic%20Social.%20Could%20you%20please%20provide%20more%20details%20about%20pricing%20and%20availability%3F', { external: true })
-  else throw new Error('No plan type found')
+  if (planType === 'pro') {
+    console.log('Handling Pro subscription...')
+    handleSubscribe(priceId)
+  }
+  else if (planType === 'free') {
+    console.log('Navigating to dashboard for free plan...')
+    navigateTo(`/dashboard`)
+  }
+  else if (planType === 'ultimate') {
+    console.log('Navigating to email for ultimate plan...')
+    navigateTo('mailto:timothyalcaide+magic@gmail.com?subject=Ultimate%20Plan%20Inquiry&body=Hi!%20I%27m%20interested%20in%20the%20Ultimate%20plan%20for%20Magic%20Social.%20Could%20you%20please%20provide%20more%20details%20about%20pricing%20and%20availability%3F', { external: true })
+  }
+  else {
+    console.error('No plan type found for priceId:', priceId)
+    console.error('Available plan mappings:', { planMap: planMap })
+    error.value = `Configuration error: Unknown plan type for price ID: ${priceId}`
+  }
 }
 
 onMounted(() => {
@@ -242,12 +317,13 @@ function onExtensionInstall() {
         <p class="text-yellow-800">Checkout was canceled. You can try again anytime.</p>
       </div>
 
-      <!-- Error message -->
-      <div v-if="error" class="mb-8 p-4 bg-red-50 border border-red-200 rounded-md">
-        <p class="text-red-800">{{ error }}</p>
-      </div>
-
-      <h1 class="text-3xl md:text-4xl font-bold tracking-tight mb-4 text-foreground">
+  <!-- Error message -->
+  <div v-if="error" class="mb-8 p-4 bg-red-50 border border-red-200 rounded-md">
+    <p class="text-red-800">{{ error }}</p>
+    <p v-if="error.includes('Configuration error')" class="text-red-600 text-sm mt-2">
+      Please try refreshing the page or contact support if the issue persists.
+    </p>
+  </div>      <h1 class="text-3xl md:text-4xl font-bold tracking-tight mb-4 text-foreground">
         Simple, Transparent Pricing
       </h1>
       <p class="text-lg text-foreground/80 mb-8 max-w-2xl mx-auto">
@@ -438,12 +514,5 @@ function onExtensionInstall() {
 
 
   <!-- Auth Modal -->
-  <AuthModal :open="showAuthModal" @close="showAuthModal = false">
-    <div class="flex flex-col gap-4">
-      <Button variant="default" size="lg" class="w-full" @click="navigateTo('/auth/confirm')">
-        Continue with Email
-      </Button>
-      <GoogleSignInButton class="w-full" />
-    </div>
-  </AuthModal>
+  <AuthModal :open="showAuthModal" @close="showAuthModal = false" />
 </template>

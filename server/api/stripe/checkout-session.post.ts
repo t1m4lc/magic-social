@@ -61,6 +61,17 @@ export default defineEventHandler(async (event) => {
   const supabaseAdminClient = serverSupabaseServiceRole<Database>(event);
 
   const host = event.node.req.headers.host;
+  const forwardedHost = event.node.req.headers["x-forwarded-host"];
+  const forwardedProto = event.node.req.headers["x-forwarded-proto"];
+
+  console.log(`[Checkout Session API Debug] Headers:`, {
+    host,
+    forwardedHost,
+    forwardedProto,
+    origin: event.node.req.headers.origin,
+    referer: event.node.req.headers.referer,
+  });
+
   if (!host) {
     console.error(
       "[Checkout Session API] Could not determine host from request headers."
@@ -71,8 +82,12 @@ export default defineEventHandler(async (event) => {
     });
   }
 
-  const protocol = process.env.NODE_ENV === "production" ? "https" : "http";
-  const baseUrl = `${protocol}://${host}`;
+  // Use forwarded headers if available (for proxy scenarios like Vercel)
+  const actualHost = forwardedHost || host;
+  const actualProtocol =
+    forwardedProto ||
+    (process.env.NODE_ENV === "production" ? "https" : "http");
+  const baseUrl = `${actualProtocol}://${actualHost}`;
   console.log(`[Checkout Session API] Dynamic Base URL determined: ${baseUrl}`);
 
   // --- BEGIN SERVER-SIDE SUBSCRIPTION CHECK ---
