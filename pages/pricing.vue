@@ -125,7 +125,7 @@ const plans: Plan[] = [
     id: 'ultimate',
     name: 'ULTIMATE',
     stripe_price_id: null,
-    price: '€40',
+    price: '€25',
     period: '/mo',
     description: 'Advanced automation and scaling features',
     popular: false,
@@ -146,9 +146,9 @@ const plans: Plan[] = [
     id: 'pro',
     name: 'PRO',
     stripe_price_id: String(useRuntimeConfig().public.stripeProPriceId ?? ''),
-    price: discountCode.value ? '€4' : '€8',
+    price: discountCode.value ? '€3' : '€5',
     period: '/mo',
-    description: discountCode.value ? 'For serious Twitter growth and engagement (-50% Friends Offer)' : 'For serious Twitter growth and engagement',
+    description: discountCode.value ? 'For serious Twitter growth and engagement (Friends Offer)' : 'For serious Twitter growth and engagement',
     popular: true,
     available: true,
     availableFeatures: [
@@ -162,7 +162,7 @@ const plans: Plan[] = [
       'Schedule posts',
       'Prioritize support',
     ],
-    buttonText: discountCode.value ? 'Upgrade to Pro (-50% Friends Offer)' : 'Upgrade to Pro',
+    buttonText: discountCode.value ? 'Upgrade to Pro (-40% Friends Offer)' : 'Upgrade to Pro',
     buttonVariant: 'default',
   },
   {
@@ -274,7 +274,7 @@ function onExtensionInstall() {
           <!-- Friends Offer Badge -->
           <div v-if="plan.id === 'pro' && discountCode" class="absolute -top-12 left-1/2 transform -translate-x-1/2">
             <span class="bg-green-600 text-white px-4 py-1 rounded-full text-sm font-bold shadow-lg border border-green-700">
-              -50% Friends Offer
+              -40% Friends Offer
             </span>
           </div>
           <CardHeader class="text-center pb-4">
@@ -282,8 +282,8 @@ function onExtensionInstall() {
             <CardDescription class="text-sm">{{ plan.description }}</CardDescription>
             <div class="pt-4 flex flex-col items-center">
               <div v-if="plan.id === 'pro' && discountCode" class="flex items-center gap-2 justify-center">
-                <span class="text-4xl font-bold text-green-700">€4</span>
-                <span class="text-2xl text-muted-foreground line-through">€8</span>
+                <span class="text-4xl font-bold text-green-700">€3</span>
+                <span class="text-2xl text-muted-foreground line-through">€5</span>
                 <span class="text-muted-foreground ml-1">{{ plan.period }}</span>
               </div>
               <div v-else>
@@ -350,7 +350,7 @@ function onExtensionInstall() {
     <div class="bg-gray-100 border-t border-gray-300 shadow-lg pointer-events-auto w-full mx-auto flex items-center justify-between px-6 py-3">
       <div class="flex flex-col md:flex-row md:items-center gap-2">
         <span class="text-lg font-semibold text-gray-900">
-          <span class="font-bold">50% off</span> Twitter friends discount!
+          <span class="font-bold">40% off</span> Twitter friends discount!
         </span>
         <span class="hidden md:inline text-sm text-gray-800 ml-3">
           DM <a href="https://twitter.com/t1m4lc" target="_blank" rel="noopener" class="underline font-medium">@t1m4lc</a> for your exclusive code.
