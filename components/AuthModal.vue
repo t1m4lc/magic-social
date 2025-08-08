@@ -37,12 +37,6 @@ const errorMsg = ref('')
 const supabase = useSupabaseClient<Database>()
 const { sendToken } = useSendTokenToExtension()
 
-// Debug Supabase configuration
-console.log('=== SUPABASE CONFIG DEBUG ===')
-console.log('Supabase client initialized:', !!supabase)
-console.log('Runtime config:', useRuntimeConfig().public)
-console.log('=============================')
-
 const signInWithGoogle = async (): Promise<void> => {
   submitting.value = true
   error.value = false
@@ -53,13 +47,6 @@ const signInWithGoogle = async (): Promise<void> => {
   
   const origin = window.location.origin
   const redirectUrl = `${origin}/confirm?redirect=${redirect}`
-  
-  console.log('=== GOOGLE SIGNIN DEBUG ===')
-  console.log('Origin:', origin)
-  console.log('Redirect URL:', redirectUrl)
-  console.log('Full path:', redirect)
-  console.log('Window location:', window.location.href)
-  console.log('==========================')
   
   try {
     const { error: signInError } = await supabase.auth.signInWithOAuth({
@@ -73,14 +60,11 @@ const signInWithGoogle = async (): Promise<void> => {
       }
     })
     
-    console.log('OAuth response error:', signInError)
-    
     if (signInError) {
       console.error('Supabase OAuth error:', signInError)
       error.value = true
       errorMsg.value = `OAuth error: ${signInError.message}. Please check your Supabase configuration.`
     } else {
-      console.log('OAuth initiated successfully')
       await sendToken()
     }
   } catch (e: any) {

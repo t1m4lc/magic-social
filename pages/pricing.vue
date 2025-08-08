@@ -50,27 +50,10 @@ const error = ref<string | null>(null)
 
 // Handle subscription checkout
 const handleSubscribe = async (priceId: string): Promise<void> => {
-  console.log('=== DEBUG handleSubscribe ===')
-  console.log('Starting subscription process for priceId:', priceId)
-  console.log('isLoading.value:', isLoading.value)
-  
-  if (isLoading.value) {
-    console.log('Already loading, returning early')
-    return
-  }
+  if (isLoading.value) return
   
   isLoading.value = true
   error.value = null
-
-  const origin = getOrigin()
-  console.log('Origin determined:', origin)
-  console.log('Current URL details:')
-  if (import.meta.client) {
-    console.log('  - window.location.href:', window.location.href)
-    console.log('  - window.location.origin:', window.location.origin)
-    console.log('  - window.location.host:', window.location.host)
-    console.log('  - window.location.protocol:', window.location.protocol)
-  }
 
   interface CheckoutBody {
     priceId: string
@@ -82,41 +65,47 @@ const handleSubscribe = async (priceId: string): Promise<void> => {
   }
 
   if (discountCode.value) body = { ...body, code: 'FRIENDS' }
-  
-  console.log('Request body:', body)
 
   try {
-    console.log('Making fetch request to /api/stripe/checkout-session')
     const response = await $fetch('/api/stripe/checkout-session', {
       method: 'POST',
       body
     })
 
-    console.log('Checkout session response:', response)
-
-    // Use navigateTo for client-side navigation
-    console.log('Navigating to:', response.sessionUrl)
+    // Navigate to Stripe checkout
     await navigateTo(response.sessionUrl, { external: true })
   } catch (err: any) {
     console.error('=== CHECKOUT ERROR ===')
-    console.error('Full error object:', err)
+    console.error('Error status:', err?.status)
     console.error('Error data:', err?.data)
     console.error('Error message:', err?.message)
-    console.error('Error status:', err?.status)
-    console.error('===================')
     
     const errorMsg = err?.data?.message || err?.message || '';
+    
     if (errorMsg.includes('Auth session missing')) {
       console.log('Auth session missing - showing auth modal')
       showAuthModal.value = true;
       error.value = null;
+    } else if (err?.status === 409 || errorMsg.includes('already has an active subscription')) {
+      console.log('User already has subscription - redirecting to subscription management')
+      error.value = null;
+      // Create Stripe customer portal session to manage subscription
+      try {
+        const portalResponse = await $fetch('/api/stripe/customer-portal', {
+          method: 'POST'
+        })
+        // Navigate to Stripe customer portal
+        await navigateTo(portalResponse.portalUrl, { external: true })
+      } catch (portalErr) {
+        console.error('Failed to create customer portal session:', portalErr)
+        // Fallback: redirect to dashboard with message
+        await navigateTo('/dashboard?subscription_exists=true')
+      }
     } else {
       error.value = errorMsg || 'Failed to create checkout session';
     }
-    console.error('Checkout error:', err)
   } finally {
     isLoading.value = false
-    console.log('=== END handleSubscribe ===')
   }
 }
 

@@ -19,10 +19,17 @@ export default defineEventHandler(async (event) => {
   const redirectPath =
     typeof query.redirect === "string" ? query.redirect : "/dashboard";
 
-  const { protocol, host } = event.node.req.headers;
-  const siteUrl =
-    (protocol ? `${protocol}://` : "https://") +
-    (host || process.env.NUXT_PUBLIC_SITE_URL || "localhost:3000");
+  // Use improved header parsing like in checkout-session
+  const host = event.node.req.headers.host;
+  const forwardedHost = event.node.req.headers["x-forwarded-host"];
+  const forwardedProto = event.node.req.headers["x-forwarded-proto"];
+
+  const actualHost = forwardedHost || host;
+  const actualProtocol =
+    forwardedProto ||
+    (process.env.NODE_ENV === "production" ? "https" : "http");
+  const siteUrl = `${actualProtocol}://${actualHost}`;
+
   const returnUrl = `${siteUrl}${
     redirectPath.startsWith("/") ? redirectPath : `/${redirectPath}`
   }`;
